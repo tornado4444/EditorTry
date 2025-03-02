@@ -6,6 +6,6 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 ### Result.
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/murder.gif)
 
-Let's to show you the main code.
+Let's to show you the main code and tell you.
 
 ## 02.03.25
