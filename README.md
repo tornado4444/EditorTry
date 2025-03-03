@@ -11,4 +11,4 @@ Let's to show you the main code and tell you.
 ## 02.03.25
 
 # TODO
-- [X] Signed Distance Field Font Rendering. 
+## - [X] Signed Distance Field Font Rendering. 
