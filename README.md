@@ -16,3 +16,4 @@ Let's to show you the main code and tell you.
 - [ ] Guizmo(base for the check).
 - [ ] Models.
 - [ ] PBR.
+- [ ] AO(Ambient Occlusion).
