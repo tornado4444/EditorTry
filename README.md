@@ -15,5 +15,6 @@ Let's to show you the main code and tell you.
 - [ ] Fixing camera and textures.
 - [ ] Guizmo(base for the check).
 - [ ] Models.
+- [ ] Animation.
 - [ ] PBR.
 - [ ] AO(Ambient Occlusion).
