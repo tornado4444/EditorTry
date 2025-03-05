@@ -12,7 +12,7 @@ Let's to show you the main code and tell you.
 
 # TODO
 - [X] Signed Distance Field Font Rendering.
-- [ ] Fixing camera and textures.
+- [X] Fixing camera and textures.
 - [ ] Guizmo(base for the check).
 - [ ] Models.
 - [ ] Animation.
