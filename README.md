@@ -7,9 +7,6 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/murder.gif)
 
 Let's to show you the main code and tell you.
-
-Here is the fragment and vertex shaders
-
 ## 02.03.25
 Here is camera and textures. Lets to show you this. 
 
