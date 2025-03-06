@@ -8,8 +8,10 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 
 Let's to show you the main code and tell you.
 
+Here is the fragment and vertex shaders
+
 ## 02.03.25
-Here is camera and textures. Lets to show you this.
+Here is camera and textures. Lets to show you this. 
 
 # TODO
 - [X] Signed Distance Field Font Rendering.
