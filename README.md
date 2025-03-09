@@ -8,8 +8,49 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 
 How we can see, there are fragment and vertex shaders on my engine. At the moment shaders are implemented for triangle and text(signed text distance field font rendering).
 
+```c++
+void Font::loadTextures() {
+	string baseFolder = myFilename.substr(0, myFilename.find_last_of('/', myFilename.length()) + 1);
 
-Let's to show you the main code and tell you.
+	for (int i = 0; i < Pages.size(); i++) {
+		string filename = baseFolder + Pages[i].filename;
+
+		GLenum err = glGetError();
+		glGenTextures(1, &Pages[i].textId);
+		if (err != GL_NO_ERROR) {
+			MyglobalLogger().logMessage(Logger::ERROR, "OpenGL error after glGenTextures: " + std::to_string(err), __FILE__, __LINE__);
+		}
+
+		glBindTexture(GL_TEXTURE_2D, Pages[i].textId);
+
+		if (err != GL_NO_ERROR) {
+			MyglobalLogger().logMessage(Logger::ERROR, "OpenGL error after glGenTextures: " + std::to_string(err), __FILE__, __LINE__);
+		}
+
+		// Parametrs images for rendering
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		int width, height, channels;
+		unsigned char* image = stbi_load(filename.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+		if (!image) {
+			MyglobalLogger().logMessage(Logger::ERROR, "Failed to load texture: " + filename, __FILE__, __LINE__);
+			continue;
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+		stbi_image_free(image);
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	MyglobalLogger().logMessage(Logger::DEBUG, "Loading font texture from: " + myFilename, __FILE__, __LINE__);
+}
+
+```
+Here is the here we specifically enter and set parameters for the background so that everything will be rendered normally.
 ## 02.03.25
 Here is camera and textures. Lets to show you this. 
 
