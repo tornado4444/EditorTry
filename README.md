@@ -71,6 +71,29 @@ void main()
 ```
 Here a fragment shader is specifically implemented, which tells us what exactly we will set in the buffer, what the color will be, and we can also set the texture.
 
+```c++
+default.vert
+
+#version 460 core
+
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aTex;
+
+uniform mat4 model;
+uniform mat4 camMatrix;
+
+out vec3 color;
+out vec2 texCoord;
+
+void main()
+{
+	gl_Position = camMatrix * model * vec4(aPos, 1.0);
+	color = aColor;
+	texCoord = aTex;
+}
+```
+The main feature of the vertex shader is to create uniform variables so that our pyramid is rendered correctly. Also, the most important thing is to set gl_Position correctly so that there are no errors in the logger.
 
 # TODO
 - [X] Signed Distance Field Font Rendering.
