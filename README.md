@@ -7,7 +7,24 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/Game/murder.gif)
 
 How we can see, there are fragment and vertex shaders on my engine. At the moment shaders are implemented for triangle and text(signed text distance field font rendering). 
+```c++
+textShader.frag
+#version 460 core
 
+out vec4 color;
+
+in vec2 TexCoords;
+
+uniform sampler2D image;
+uniform vec3 Color;
+
+void main(){
+	vec4 sampled = vec4(1.0f,1.0f,1.0f, texture(image,TexCoords).r);
+	color = vec4(Color, 1.0f) * sampled;
+}
+```
+This is the main section of code that defines for the fragment shader to set the texture and a specific color for the text so that it can be rendered, also not as an object (for example, when we want to move the camera away, we see how the text disappears, and is rendered as a pyramid), but namely the specified shader.
+The main code on Font.cpp
 ```c++
 void Font::loadTextures() {
 	string baseFolder = myFilename.substr(0, myFilename.find_last_of('/', myFilename.length()) + 1);
