@@ -69,6 +69,7 @@ void main()
 	FragColor = texture(tex0, texCoord) * vec4(color, 1.0);
 }
 ```
+Here a fragment shader is specifically implemented, which tells us what exactly we will set in the buffer, what the color will be, and we can also set the texture.
 
 
 # TODO
