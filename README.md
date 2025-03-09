@@ -4,7 +4,7 @@ Here been my project OpenGL! It's don't my first project, it's just my repeat ab
 ## 20.02.25
 There is just simple check my triangle! And I'm decided make the font rendering(Signed distance field font rendering), and to be honest, I wanted to do this for a very long time, but I didn’t have enough experience to implement it, so I decided to do it now (for those who don’t know, I will describe everything in detail so that everyone understands exactly what I want to achieve).
 ### Result.
-![gif](https://github.com/tornado4444/OpenGL/blob/main/murder.gif)
+![gif](https://github.com/tornado4444/OpenGL/blob/main/Game/murder.gif)
 
 How we can see, there are fragment and vertex shaders on my engine. At the moment shaders are implemented for triangle and text(signed text distance field font rendering).
 
