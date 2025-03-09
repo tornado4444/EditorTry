@@ -19,3 +19,7 @@ Here is camera and textures. Lets to show you this.
 - [ ] PBR.
 - [ ] AO(Ambient Occlusion).
 - [ ] Volumetric Clouds.
+
+# Operating Systems.
+- [X] Windows.
+- [ ] Linux.
