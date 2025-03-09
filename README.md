@@ -24,6 +24,7 @@ void main(){
 }
 ```
 This is the main section of code that defines for the fragment shader to set the texture and a specific color for the text so that it can be rendered, also not as an object (for example, when we want to move the camera away, we see how the text disappears, and is rendered as a pyramid), but namely the specified shader.
+
 The main code on Font.cpp
 ```c++
 void Font::loadTextures() {
