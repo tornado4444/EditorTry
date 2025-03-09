@@ -53,6 +53,23 @@ void Font::loadTextures() {
 Here is the here we specifically enter and set parameters for the background so that everything will be rendered normally.
 ## 02.03.25
 The next, I decided to implement a camera, of course, and give textures to my pyramide. At the moment, only basic pyramid textures and custom shaders have been implemented.
+```c++
+default.frag
+
+#version 460 core
+
+out vec4 FragColor;
+
+in vec3 color;
+in vec2 texCoord;
+uniform sampler2D tex0;
+
+void main()
+{
+	FragColor = texture(tex0, texCoord) * vec4(color, 1.0);
+}
+```
+
 
 # TODO
 - [X] Signed Distance Field Font Rendering.
