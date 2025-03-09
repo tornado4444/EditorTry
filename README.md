@@ -6,7 +6,7 @@ There is just simple check my triangle! And I'm decided make the font rendering(
 ### Result.
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/Game/murder.gif)
 
-How we can see, there are fragment and vertex shaders on my engine. At the moment shaders are implemented for triangle and text(signed text distance field font rendering).
+How we can see, there are fragment and vertex shaders on my engine. At the moment shaders are implemented for triangle and text(signed text distance field font rendering). 
 
 ```c++
 void Font::loadTextures() {
