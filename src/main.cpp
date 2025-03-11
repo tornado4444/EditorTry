@@ -1,7 +1,7 @@
 #include "Window.hpp"
 #include "Engine.hpp"
 
-int main() {
+auto main() -> int {
 	Engine engine;
 
 	engine.initialize();
