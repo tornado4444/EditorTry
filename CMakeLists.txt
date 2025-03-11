@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 project(Rethink LANGUAGES C CXX)
 
-# Установка стандарта C++
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Настройка GLEW
+# GLEW configuration
 add_definitions(-DGLEW_STATIC)
 set(GLEW_BUILD_SHARED OFF CACHE BOOL "Build GLEW as a static library" FORCE)
 
-# Добавление поддиректорий для GLFW и GLEW
+# Add subdirectories for GLFW and GLEW
 add_subdirectory(thirdparty/glfw)
 add_subdirectory(thirdparty/glew)
 
-# Настройки для Windows
+# Windows-specific settings
 if(WIN32)
     target_compile_definitions(glfw PRIVATE
         _WIN32
@@ -22,13 +22,16 @@ if(WIN32)
     )
 endif()
 
-# Поиск OpenGL
+# Find OpenGL package
 find_package(OpenGL REQUIRED)
 
+# Recursively get all source files
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.hpp")
+
+# Copy texture directory to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/textures DESTINATION ${CMAKE_BINARY_DIR})
 
-# Сборка GLEW как статической библиотеки
+# Set up GLEW as a static imported library
 add_library(glew_static STATIC IMPORTED)
 set_target_properties(glew_static PROPERTIES
     IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/thirdparty/glew/lib/Debug/x64/glew32sd.lib"
@@ -36,7 +39,7 @@ set_target_properties(glew_static PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/thirdparty/glew/include"
 )
 
-# Сборка основного проекта
+# Main project source files
 set(SOURCES
     src/main.cpp
     src/Window.cpp
@@ -49,9 +52,10 @@ set(SOURCES
     thirdparty/stb/stb_image.cpp
 )
 
+# Create executable
 add_executable(Rethink ${SOURCES} "Game/Texture.cpp")
 
-# Установка директорий для включения заголовочных файлов
+# Set include directories
 target_include_directories(Rethink PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/thirdparty/glfw/include
@@ -61,14 +65,16 @@ target_include_directories(Rethink PRIVATE
     ${CMAKE_SOURCE_DIR}/thirdparty/glew/include
 )
 
-# Включение экспериментальных функций GLM
+# Enable experimental GLM features
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
-# Статическая сборка для GLEW
+# Enable static GLEW compilation
 target_compile_definitions(Rethink PRIVATE GLEW_STATIC)
+
+# Define texture path as a preprocessor definition
 target_compile_definitions(Rethink PRIVATE TEXTURE_PATH="${CMAKE_SOURCE_DIR}/textures/sand.png")
 
-# Линковка библиотек
+# Link libraries
 target_link_libraries(Rethink PRIVATE
     ${OPENGL_LIBRARIES}
     glew_static
