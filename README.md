@@ -85,7 +85,7 @@ void Font::loadTextures() {
 ```
 Here is the here we specifically enter and set parameters for the background so that everything will be rendered normally.
 ## 02.03.25
-The next, I decided to implement a camera, of course, and give textures to my pyramide. At the moment, only basic pyramid textures and custom shaders have been implemented. Here
+The next, I decided to implement a camera, of course, and give textures to my pyramide. At the moment, only basic pyramid textures and custom shaders have been implemented. 
 ```c++
 default.frag
 
