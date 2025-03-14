@@ -134,7 +134,7 @@ The main feature of the vertex shader is to create uniform variables so that our
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
 - [ ] Models.
-- [ ] Guizmo(base for the check).
+- [ ] Guizmo.
 - [ ] AO(Ambient Occlusion).
 - [ ] Animation.
 - [ ] PBR.
