@@ -129,7 +129,7 @@ void main()
 The main feature of the vertex shader is to create uniform variables so that our pyramid is rendered correctly. Also, the most important thing is to set gl_Position correctly so that there are no errors in the logger.
 
 ### Result.
-![video](https://github.com/tornado4444/OpenGL/blob/main/Game/have.mp4)
+<img align="right" src="" width="320px"/>
 # TODO
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
