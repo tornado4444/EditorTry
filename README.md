@@ -130,6 +130,8 @@ The main feature of the vertex shader is to create uniform variables so that our
 
 ### Result.
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/Game/had.gif)
+
+23.03.25
 # TODO
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
