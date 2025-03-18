@@ -142,7 +142,7 @@ The main feature of the vertex shader is to create uniform variables so that our
 - [ ] Animation.
 - [ ] PBR.
 - [ ] Volumetric Clouds.
-- [X] BVH.
+- [ ] BVH.
 
 # Operating Systems.
 - [X] Windows.
