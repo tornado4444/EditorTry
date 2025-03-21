@@ -136,7 +136,7 @@ The next, I'm trying to load model and base guizmo. The main code:
 # TODO
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
-- [X] Models.
+- [ ] Models.
 - [ ] Guizmo.
 - [ ] AO(Ambient Occlusion).
 - [ ] Animation.
