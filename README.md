@@ -131,11 +131,11 @@ The main feature of the vertex shader is to create uniform variables so that our
 ![gif](https://github.com/tornado4444/OpenGL/blob/main/Game/had.gif)
 
 ### 25.03.25
-The next, I'm trying to load model and base guizmo and render the model. Let's do it.
+The next, I'm trying to load model and base guizmo and render the model. But on first
 # TODO
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
-- [ ] Models.
+- [X] Models.
 - [ ] Guizmo.
 - [ ] AO(Ambient Occlusion).
 - [ ] Animation.
