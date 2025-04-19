@@ -136,7 +136,7 @@ The next, I'm trying to load model and base guizmo and render the model.
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
 - [X] Models.
-- [ ] Guizmo.
+- [X] Guizmo.
 - [ ] AO(Ambient Occlusion).
 - [ ] Animation.
 - [ ] PBR.
