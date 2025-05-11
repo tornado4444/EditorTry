@@ -156,61 +156,54 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type, std::stri
 	}
 }
 
-// Загружает содержимое шейдерного файла в строку
 std::string Shader::loadShaderFromFile(const char* shaderPath) {
-	std::string shaderCode; // переменная для хранения содержимого шейдерного файла
-	std::ifstream shaderFile; // поток для чтения из файла
-	shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit); // устанавливаем исключения для обработки ошибок ввода/вывода
+	std::string shaderCode;
+	std::ifstream shaderFile; 
+	shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit); 
 	try
 	{
-		// открываю файлы в указаном пути
 		shaderFile.open(shaderPath);
-		std::stringstream shaderStream; // поток для накопления данных из файла
-		shaderStream << shaderFile.rdbuf(); // читаем содержимое файла в поток
-		shaderFile.close(); // закрываю файл
-		shaderCode = shaderStream.str(); // конвертируем содержимое потока в строку
+		std::stringstream shaderStream; 
+		shaderStream << shaderFile.rdbuf();
+		shaderFile.close(); 
+		shaderCode = shaderStream.str(); 
 	}
-	catch (std::ifstream::failure e) // обрабатываю исключение при обработки ошибки
+	catch (std::ifstream::failure e) 
 	{
-		// Обрабатываю вывод
 		MyglobalLogger().logMessage(Logger::ERROR,
 			"ERROR::SHADER " + getShaderName(shaderPath) + "FILE_NOT_SUCCESFULLY_READ!", __FILE__, __LINE__
 		);
 	}
-	return shaderCode; // возращаю содержимое файла
+	return shaderCode; 
 }
 
 std::string Shader::getShaderName(const char* path) {
-	std::string pathstr = std::string(path); // преобразуем путь в строку std::string
-	const size_t last_slash_idx = pathstr.find_last_of("/"); // находим последний символ '/' 
-	if (std::string::npos != last_slash_idx) // если '/' найден
+	std::string pathstr = std::string(path); 
+	const size_t last_slash_idx = pathstr.find_last_of("/"); 
+	if (std::string::npos != last_slash_idx) 
 	{
-		pathstr.erase(0, last_slash_idx + 1); // удаляем всё до и включая последний '/'
+		pathstr.erase(0, last_slash_idx + 1); 
 	}
-	return pathstr; // возвращаю оставшуюся часть строки — имя файла
+	return pathstr; 
 }
 
 bool Shader::createFromString(const char* vertexSource, const char* fragmentSource) {
-	// Создание вершинного шейдера
 	unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertex, 1, &vertexSource, NULL);
 	glCompileShader(vertex);
 	checkCompileErrors(vertex, "VERTEX", "string");
 
-	// Создание фрагментного шейдера
 	unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragment, 1, &fragmentSource, NULL);
 	glCompileShader(fragment);
 	checkCompileErrors(fragment, "FRAGMENT", "string");
 
-	// Создание шейдерной программы
 	ID = glCreateProgram();
 	glAttachShader(ID, vertex);
 	glAttachShader(ID, fragment);
 	glLinkProgram(ID);
 	checkCompileErrors(ID, "PROGRAM", "string");
 
-	// Удаление шейдеров, они уже связаны с программой
 	glDeleteShader(vertex);
 	glDeleteShader(fragment);
 	return true;
