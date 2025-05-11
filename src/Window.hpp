@@ -42,5 +42,5 @@ private:
 	Camera* camera = nullptr;
 
 private:
-	int ñhangeWidth = widthWindow; int heightHeight = heightWindow;
+	int changeWidth = widthWindow; int heightHeight = heightWindow;
 };
