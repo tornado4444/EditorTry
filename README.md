@@ -135,7 +135,7 @@ The next, I'm trying to load model and base guizmo and render the model(sponza).
 # TODO
 - [X] Signed Distance Field Font Rendering.
 - [X] Fixing camera and textures.
-- [ ] Models.
+- [X] Models.
 - [ ] Guizmo.
 - [ ] AO(Ambient Occlusion).
 - [ ] Animation.
