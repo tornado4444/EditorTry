@@ -4,13 +4,11 @@
 auto main() -> int {
 	Init init;
 
-	init.initialize(); 
+	init.initialize();
 
 	while (!init.shouldClose()) {
 		init.processInput(init.getWindow());
 		init.render();
 		init.swapBuffersAndPollEvents();
 	}
-
-	return 0;
 }

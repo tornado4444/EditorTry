@@ -15,11 +15,11 @@ public:
         }
     }
 
-    // Запрещаем копирование
+    // Запрещаем копирование (RAII)
     VAO(const VAO&) = delete;
     VAO& operator=(const VAO&) = delete;
 
-    // Разрешаем перемещение
+    // Разрешаем перемещение (move semantics)
     VAO(VAO&& other) noexcept : ID(other.ID) {
         other.ID = 0;
     }
@@ -35,6 +35,7 @@ public:
         return *this;
     }
 
+public:
     GLuint getID() const { return ID; }
 
     void Bind() const {
@@ -42,7 +43,7 @@ public:
     }
 
     void UnBind() const {
-        glBindVertexArray(0); // ИСПРАВЛЕНО! Было glBindVertexArray(ID)
+        glBindVertexArray(0); 
     }
 
     void linkAttrib(const VBO& vbo, GLuint layout, GLint numComponents,
@@ -54,5 +55,5 @@ public:
     }
 
 private:
-    GLuint ID = 0;
+    GLuint ID = 0; // Инициализируем нулем для безопасности
 };
