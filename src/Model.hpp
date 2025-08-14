@@ -9,7 +9,7 @@ class Model {
 public:
 	Model(const char* file);
 
-	void Draw(Shader& shader, Camera& camera);
+	void Draw(Shader& shader, Camera& camera, glm::mat4 externalModel = glm::mat4(1.0f));  
 
 	std::string get_file_contents(const char* filename);
 

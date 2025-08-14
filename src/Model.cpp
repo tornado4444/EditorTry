@@ -25,10 +25,12 @@ Model::Model(const char* file) {
 	traverseNode(0);
 }
 
-void Model::Draw(Shader& shader, Camera& camera) {
+
+void Model::Draw(Shader& shader, Camera& camera, glm::mat4 externalModel) {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
-		meshes[i].Mesh::Draw(shader, camera, matricesMeshes[i]);
+		shader.setMat4("model", externalModel * matricesMeshes[i]); 
+		meshes[i].Mesh::Draw(shader, camera);
 	}
 }
 
@@ -220,7 +222,6 @@ std::vector<Texture> Model::getTextures()
 	std::string fileStr = std::string(file);
 	std::string fileDirectory = fileStr.substr(0, fileStr.find_last_of('/') + 1);
 
-	// Go over all images
 	for (unsigned int i = 0; i < JSON["images"].size(); i++)
 	{
 		std::string texPath = JSON["images"][i]["uri"];

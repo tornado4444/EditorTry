@@ -94,6 +94,57 @@ else()
     message(WARNING "JSON не найден в libraries/json/. Скачайте json.h или nlohmann/json.hpp и поместите в эту папку.")
 endif()
 
+set(IMGUI_INCLUDE_DIR "${LIBRARIES_DIR}/imgui")
+if(EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
+    message(STATUS "Найден ImGui в libraries/imgui")
+    
+    set(IMGUI_SOURCES
+        "${IMGUI_INCLUDE_DIR}/imgui.cpp"
+        "${IMGUI_INCLUDE_DIR}/imgui_demo.cpp"
+        "${IMGUI_INCLUDE_DIR}/imgui_draw.cpp"
+        "${IMGUI_INCLUDE_DIR}/imgui_tables.cpp"
+        "${IMGUI_INCLUDE_DIR}/imgui_widgets.cpp"
+    )
+    
+    set(IMGUI_BACKENDS_DIR "${IMGUI_INCLUDE_DIR}/backends")
+    set(GLFW_BACKEND_FILE "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp")
+    set(OPENGL3_BACKEND_FILE "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp")
+    
+    if(EXISTS "${GLFW_BACKEND_FILE}" AND EXISTS "${OPENGL3_BACKEND_FILE}")
+        list(APPEND IMGUI_SOURCES
+            "${GLFW_BACKEND_FILE}"
+            "${OPENGL3_BACKEND_FILE}"
+        )
+        message(STATUS "Найдены нужные бэкенды ImGui: GLFW и OpenGL3")
+    else()
+        message(FATAL_ERROR "КРИТИЧЕСКАЯ ОШИБКА: Не найдены файлы бэкендов ImGui!")
+    endif()
+    
+else()
+    message(FATAL_ERROR "ImGui не найден в libraries/imgui/. Скачайте ImGui и распакуйте в эту папку.")
+endif()
+
+set(IMGUIZMO_INCLUDE_DIR "${LIBRARIES_DIR}/imguizmo")
+if(EXISTS "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.h")
+    message(STATUS "Найден ImGuizmo в libraries/imguizmo")
+    
+    set(IMGUIZMO_SOURCES
+        "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.cpp"
+        "${IMGUIZMO_INCLUDE_DIR}/ImCurveEdit.cpp"  
+        "${IMGUIZMO_INCLUDE_DIR}/ImGradient.cpp"
+        "${IMGUIZMO_INCLUDE_DIR}/ImSequencer.cpp"
+    )
+    
+    foreach(imguizmo_file ${IMGUIZMO_SOURCES})
+        if(NOT EXISTS ${imguizmo_file})
+            message(WARNING "Файл ImGuizmo не найден: ${imguizmo_file}")
+        endif()
+    endforeach()
+    
+else()
+    message(FATAL_ERROR "ImGuizmo не найден в libraries/imguizmo/")
+endif()
+
 file(GLOB_RECURSE SOURCES 
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/*.c"
@@ -115,8 +166,10 @@ file(WRITE ${STB_IMPLEMENTATION_FILE}
 ")
 
 list(APPEND SOURCES ${STB_IMPLEMENTATION_FILE})
+list(APPEND SOURCES ${IMGUI_SOURCES})
+list(APPEND SOURCES ${IMGUIZMO_SOURCES})
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} "src/Mesh.cpp")
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     "${CMAKE_SOURCE_DIR}/src"
@@ -127,6 +180,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${GLEW_INCLUDE_DIR}"
     "${STB_INCLUDE_DIR}"
     "${JSON_INCLUDE_DIR}"
+    "${IMGUI_INCLUDE_DIR}"
+    "${IMGUI_INCLUDE_DIR}/backends"
+    "${IMGUIZMO_INCLUDE_DIR}"
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
@@ -154,7 +210,7 @@ elseif(APPLE)
         "-framework IOKit" 
         "-framework CoreVideo"
     )
-else() # Linux
+else()
     target_link_libraries(${PROJECT_NAME} PRIVATE
         ${CMAKE_DL_LIBS}
         pthread
@@ -190,6 +246,9 @@ if(MSVC)
             source_group("Header Files" FILES "${header}")
         endif()
     endforeach()
+    
+    source_group("ImGui" FILES ${IMGUI_SOURCES})
+    source_group("imguizmo" FILES ${IMGUIZMO_SOURCES})
     
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
                  PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})

@@ -23,10 +23,7 @@ Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, std::vec
     ebo->UnBind();
 }
 
-void Mesh::Draw(Shader& shader, Camera& camera, glm::mat4 matrix,
-    glm::vec3 translation, glm::quat rotation, glm::vec3 scale) {
-
-    shader.use();
+void Mesh::Draw(Shader& shader, Camera& camera) {
     vao.Bind();
 
     unsigned int numDiffuse = 0;
@@ -57,18 +54,6 @@ void Mesh::Draw(Shader& shader, Camera& camera, glm::mat4 matrix,
         std::string uniformName = type + num;
         shader.setInt(uniformName, i);
     }
-
-    glm::mat4 trans = glm::mat4(1.0f);
-    glm::mat4 rot = glm::mat4(1.0f);
-    glm::mat4 sca = glm::mat4(1.0f);
-
-    trans = glm::translate(trans, translation);
-    rot = glm::mat4_cast(rotation);
-    sca = glm::scale(sca, scale);
-
-    shader.setMat4("model", matrix * trans * rot * sca);
-    shader.setMat4("view", camera.getViewMatrix());
-    shader.setMat4("projection", camera.getProjectionMatrix(800.0f / 600.0f)); // Можно передать aspect ratio как параметр
 
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
 

@@ -8,7 +8,7 @@ auto main() -> int {
 
 	while (!init.shouldClose()) {
 		init.processInput(init.getWindow());
-		init.render();
+		init.render();	
 		init.swapBuffersAndPollEvents();
 	}
 }

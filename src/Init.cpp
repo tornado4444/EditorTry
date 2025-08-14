@@ -1,4 +1,5 @@
 ﻿#include "Init.hpp"
+#include "Menu.hpp"
 
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp> 
@@ -7,7 +8,8 @@
 Init::Init() : Window() {
     glEnable(GL_DEPTH_TEST);
 
-    camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 2.0f));
+    camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 0.5f));
+    menu = std::make_unique<Menu>();
 
     lastX = getWindowWidth() / 2.0f;
     lastY = getWindowHeight() / 2.0f;
@@ -16,27 +18,43 @@ Init::Init() : Window() {
 }
 
 void Init::initialize() {
-    shader = std::make_unique<Shader>("../../../shaders/default.vert", "../../../shaders/default.frag");
+    shader = std::make_unique<Shader>("../../../shaders/default.vert", "../../../shaders/default.frag", "../../../shaders/default.geom");
     textRender = std::make_unique<Shader>("../../../shaders/textShader.vert", "../../../shaders/textShader.frag");
+    normalsShader = std::make_unique<Shader>("../../../shaders/default.vert", "../../../shaders/normals.frag", "../../../shaders/normals.geom");
 
-    if (!shader || !textRender) {
+    if (!shader || !textRender || !normalsShader) {
         MyglobalLogger().logMessage(Logger::ERROR, "Failed to load shaders!", __FILE__, __LINE__);
         return;
+    }
+
+    GLint success;
+    GLchar infoLog[512];
+    glGetProgramiv(shader->ID, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shader->ID, 512, NULL, infoLog);
+        MyglobalLogger().logMessage(Logger::ERROR, "Shader linking failed: " + std::string(infoLog), __FILE__, __LINE__);
+    }
+    glGetProgramiv(textRender->ID, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(textRender->ID, 512, NULL, infoLog);
+        MyglobalLogger().logMessage(Logger::ERROR, "Text shader linking failed: " + std::string(infoLog), __FILE__, __LINE__);
+    }
+    glGetProgramiv(normalsShader->ID, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(normalsShader->ID, 512, NULL, infoLog);
+        MyglobalLogger().logMessage(Logger::ERROR, "Normals shader linking failed: " + std::string(infoLog), __FILE__, __LINE__);
     }
 
     try {
         model = std::make_unique<Model>("../../../models/bunny/scene.gltf");
         MyglobalLogger().logMessage(Logger::INFO, "Successfully loaded GLTF model: scene.gltf", __FILE__, __LINE__);
 
-        if (model && !model->meshes.empty()) {
-            std::cout << "\n=== MODEL DIAGNOSTIC ===" << std::endl;
-            std::cout << "Total meshes: " << model->meshes.size() << std::endl;
+        glm::vec3 overallMin(FLT_MAX);
+        glm::vec3 overallMax(-FLT_MAX);
 
+        if (model && !model->meshes.empty()) {
             for (size_t i = 0; i < model->meshes.size(); ++i) {
                 const auto& mesh = model->meshes[i];
-                std::cout << "Mesh " << i << ":" << std::endl;
-                std::cout << "  Vertices: " << mesh.vertices.size() << std::endl;
-                std::cout << "  Indices: " << mesh.indices.size() << std::endl;
 
                 if (!mesh.vertices.empty()) {
                     glm::vec3 minBounds(FLT_MAX);
@@ -45,18 +63,16 @@ void Init::initialize() {
                     for (const auto& vertex : mesh.vertices) {
                         minBounds = glm::min(minBounds, vertex.position);
                         maxBounds = glm::max(maxBounds, vertex.position);
+                        overallMin = glm::min(overallMin, vertex.position);
+                        overallMax = glm::max(overallMax, vertex.position);
                     }
 
-                    std::cout << "  Min bounds: (" << minBounds.x << ", " << minBounds.y << ", " << minBounds.z << ")" << std::endl;
-                    std::cout << "  Max bounds: (" << maxBounds.x << ", " << maxBounds.y << ", " << maxBounds.z << ")" << std::endl;
-
                     glm::vec3 size = maxBounds - minBounds;
-                    std::cout << "  Size: (" << size.x << ", " << size.y << ", " << size.z << ")" << std::endl;
                 }
             }
-            std::cout << "=========================" << std::endl;
-        }
 
+            menu->setModelBounds(overallMin, overallMax);
+        }
     }
     catch (const std::exception& e) {
         MyglobalLogger().logMessage(Logger::ERROR, "Failed to load GLTF model: " + std::string(e.what()), __FILE__, __LINE__);
@@ -69,17 +85,104 @@ void Init::initialize() {
         return;
     }
 
+    if (!menu->initialize(getWindow())) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Failed to initialize menu system!", __FILE__, __LINE__);
+        return;
+    }
+
     shader->use();
 
     glfwSetWindowUserPointer(getWindow(), this);
+
+    glfwSetMouseButtonCallback(getWindow(), [](GLFWwindow* window, int button, int action, int mods) {
+        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+        Init* engine = static_cast<Init*>(glfwGetWindowUserPointer(window));
+        engine->mouseButtonCallback(window, button, action, mods);
+        });
+
+    glfwSetKeyCallback(getWindow(), [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+        });
+
+    glfwSetCharCallback(getWindow(), [](GLFWwindow* window, unsigned int codepoint) {
+        ImGui_ImplGlfw_CharCallback(window, codepoint);
+        });
+
     glfwSetCursorPosCallback(getWindow(), [](GLFWwindow* window, double xpos, double ypos) {
         Init* engine = static_cast<Init*>(glfwGetWindowUserPointer(window));
         engine->cursorPosCallback(window, xpos, ypos);
         });
+
     glfwSetScrollCallback(getWindow(), [](GLFWwindow* window, double xoffset, double yoffset) {
         Init* engine = static_cast<Init*>(glfwGetWindowUserPointer(window));
         engine->scroll_callback(window, xoffset, yoffset);
         });
+}
+
+void Init::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && menu->isEditorModeActive()) {
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.WantCaptureMouse) {
+            return;
+        }
+
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+
+        float ndcX = (2.0f * mouseX) / width - 1.0f;
+        float ndcY = 1.0f - (2.0f * mouseY) / height;
+
+        glm::vec4 clipCoords = glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
+        glm::vec4 eyeCoords = glm::inverse(projection) * clipCoords;
+        eyeCoords = glm::vec4(eyeCoords.x, eyeCoords.y, -1.0f, 0.0f);
+
+        glm::vec3 worldRay = glm::normalize(glm::vec3(glm::inverse(view) * eyeCoords));
+        glm::vec3 rayOrigin = camera->Position;
+
+        glm::vec3 modelPos = menu->getModelPosition();
+        glm::vec3 modelScale = menu->getModelScale();
+        glm::vec3 boxMin = menu->localMinBounds * modelScale + modelPos;
+        glm::vec3 boxMax = menu->localMaxBounds * modelScale + modelPos;
+
+
+        if (rayAABBIntersectWorld(rayOrigin, worldRay, boxMin, boxMax)) {
+            menu->setModelSelected(true);
+        }
+        else {
+            menu->setModelSelected(false);
+
+            glm::vec3 expandedMin = boxMin - glm::vec3(2.0f);
+            glm::vec3 expandedMax = boxMax + glm::vec3(2.0f);
+
+            if (rayAABBIntersectWorld(rayOrigin, worldRay, expandedMin, expandedMax)) {
+                menu->setModelSelected(true);
+            }
+        }
+    }
+}
+
+bool Init::rayAABBIntersectWorld(const glm::vec3& origin, const glm::vec3& dir, const glm::vec3& boxMin, const glm::vec3& boxMax) {
+    glm::vec3 invDir;
+    invDir.x = (abs(dir.x) > 0.0001f) ? 1.0f / dir.x : 1e30f;
+    invDir.y = (abs(dir.y) > 0.0001f) ? 1.0f / dir.y : 1e30f;
+    invDir.z = (abs(dir.z) > 0.0001f) ? 1.0f / dir.z : 1e30f;
+
+    glm::vec3 t1 = (boxMin - origin) * invDir;
+    glm::vec3 t2 = (boxMax - origin) * invDir;
+
+    glm::vec3 tmin = glm::min(t1, t2);
+    glm::vec3 tmax = glm::max(t1, t2);
+
+    float t_near = glm::max(glm::max(tmin.x, tmin.y), tmin.z);
+    float t_far = glm::min(glm::min(tmax.x, tmax.y), tmax.z);
+
+    bool intersects = t_near <= t_far && t_far >= 0.0f;
+
+    return intersects;
 }
 
 void Init::processInput(GLFWwindow* window) {
@@ -88,137 +191,115 @@ void Init::processInput(GLFWwindow* window) {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera->ProcessKeyboard(FORWARD, deltaTime);
+    menu->handleEditorToggle(window);
+
+    if (menu->isEditorModeActive()) {
+        menu->handleInput(window);
     }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera->ProcessKeyboard(BACKWARD, deltaTime);
+
+    if (!menu->isEditorModeActive()) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            camera->ProcessKeyboard(FORWARD, deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            camera->ProcessKeyboard(BACKWARD, deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            camera->ProcessKeyboard(LEFT, deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            camera->ProcessKeyboard(RIGHT, deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            camera->ProcessKeyboard(UP, deltaTime);
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            camera->ProcessKeyboard(DOWN, deltaTime);
+        }
     }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera->ProcessKeyboard(LEFT, deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera->ProcessKeyboard(RIGHT, deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camera->ProcessKeyboard(UP, deltaTime);
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        camera->ProcessKeyboard(DOWN, deltaTime);
-    }
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 }
 
 void Init::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
-    if (firstClick) {
+    ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+
+    if (menu->isEditorModeActive()) {
+        firstClick = true;
+    }
+    else {
+        if (firstClick) {
+            lastX = xpos;
+            lastY = ypos;
+            firstClick = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
         lastX = xpos;
         lastY = ypos;
-        firstClick = false;
+
+        camera->ProcessMouseMovement(xoffset, yoffset);
     }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-    lastX = xpos;
-    lastY = ypos;
-
-    camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
 void Init::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    camera->ProcessMouseScroll(yoffset);
+    ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
+
+    if (!menu->isEditorModeActive()) {
+        camera->ProcessMouseScroll(yoffset);
+    }
 }
 
 void Init::render() {
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    int width = widthWindow, height = heightWindow;
+    int width, height;
     glfwGetWindowSize(getWindow(), &width, &height);
     glViewport(0, 0, width, height);
-
-    shader->use();
 
     projection = glm::perspective(glm::radians(camera->Zoom), (float)width / (float)height, 0.1f, 100.0f);
     view = camera->getViewMatrix();
 
-    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    menu->render(view, projection);
 
-    glm::vec3 modelPosition = glm::vec3(0.0f, 0.0f, -8.0f);
+    glm::mat4 modelMatrix = menu->getModelMatrix();
+    glm::vec3 modelPosition = menu->getModelPosition();
+    glm::vec3 modelRotation = menu->getModelRotation();
+    glm::vec3 modelScale = menu->getModelScale();
 
-    static float debugRotationX = 90.0f;
-    static float debugRotationY = 180.0f; 
-    static float debugRotationZ = 1000.0f;
-    static float bunnyScale = 10000.0f; 
+    bool wireframe = menu->isWireframeMode();
+    bool showNormals = menu->isShowNormals();
+    bool geometryEffects = menu->isGeometryEffects();
 
-    static bool key1Pressed = false, key2Pressed = false;
-    static bool key3Pressed = false, key4Pressed = false;
-    static bool key5Pressed = false, key6Pressed = false;
-    static bool key7Pressed = false, key8Pressed = false;
+    if (!menu->isEditorModeActive()) {
+        static bool tKeyPressed = false;
+        bool tKeyCurrentlyPressed = (glfwGetKey(getWindow(), GLFW_KEY_T) == GLFW_PRESS);
+        if (tKeyCurrentlyPressed && !tKeyPressed) {
+            wireframe = !wireframe;
+            menu->setWireframeMode(wireframe);
+        }
+        tKeyPressed = tKeyCurrentlyPressed;
 
-    bool key1Current = (glfwGetKey(getWindow(), GLFW_KEY_1) == GLFW_PRESS);
-    bool key2Current = (glfwGetKey(getWindow(), GLFW_KEY_2) == GLFW_PRESS);
-    bool key3Current = (glfwGetKey(getWindow(), GLFW_KEY_3) == GLFW_PRESS);
-    bool key4Current = (glfwGetKey(getWindow(), GLFW_KEY_4) == GLFW_PRESS);
-    bool key5Current = (glfwGetKey(getWindow(), GLFW_KEY_5) == GLFW_PRESS);
-    bool key6Current = (glfwGetKey(getWindow(), GLFW_KEY_6) == GLFW_PRESS);
-    bool key7Current = (glfwGetKey(getWindow(), GLFW_KEY_7) == GLFW_PRESS);
-    bool key8Current = (glfwGetKey(getWindow(), GLFW_KEY_8) == GLFW_PRESS);
+        static bool nKeyPressed = false;
+        bool nKeyCurrentlyPressed = (glfwGetKey(getWindow(), GLFW_KEY_N) == GLFW_PRESS);
+        if (nKeyCurrentlyPressed && !nKeyPressed) {
+            showNormals = !showNormals;
+            menu->setShowNormals(showNormals);
+        }
+        nKeyPressed = nKeyCurrentlyPressed;
 
-    if (key1Current && !key1Pressed) { debugRotationX += 15.0f; std::cout << "Rotation X: " << debugRotationX << std::endl; }
-    if (key2Current && !key2Pressed) { debugRotationX -= 15.0f; std::cout << "Rotation X: " << debugRotationX << std::endl; }
-    if (key3Current && !key3Pressed) { debugRotationY += 15.0f; std::cout << "Rotation Y: " << debugRotationY << std::endl; }
-    if (key4Current && !key4Pressed) { debugRotationY -= 15.0f; std::cout << "Rotation Y: " << debugRotationY << std::endl; }
-    if (key5Current && !key5Pressed) { debugRotationZ += 15.0f; std::cout << "Rotation Z: " << debugRotationZ << std::endl; }
-    if (key6Current && !key6Pressed) { debugRotationZ -= 15.0f; std::cout << "Rotation Z: " << debugRotationZ << std::endl; }
-    if (key7Current && !key7Pressed) { bunnyScale += 0.1f; std::cout << "Scale: " << bunnyScale << std::endl; }
-    if (key8Current && !key8Pressed) { bunnyScale -= 0.1f; std::cout << "Scale: " << bunnyScale << std::endl; }
-
-    key1Pressed = key1Current; key2Pressed = key2Current;
-    key3Pressed = key3Current; key4Pressed = key4Current;
-    key5Pressed = key5Current; key6Pressed = key6Current;
-    key7Pressed = key7Current; key8Pressed = key8Current;
-
-    if (bunnyScale < 0.1f) bunnyScale = 0.1f;
-    if (bunnyScale > 20.0f) bunnyScale = 20.0f;
-
-    modelMatrix = glm::translate(modelMatrix, modelPosition);
-
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(debugRotationX), glm::vec3(1.0f, 0.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(debugRotationY), glm::vec3(0.0f, 1.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, glm::radians(debugRotationZ), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    modelMatrix = glm::scale(modelMatrix, glm::vec3(bunnyScale));
-
-    shader->setMat4("view", view);
-    shader->setMat4("projection", projection);
-    shader->setMat4("model", modelMatrix);
-    shader->setVec3("camPos", camera->Position);
-
-    GLint timeLocation = glGetUniformLocation(shader->ID, "time");
-    if (timeLocation != -1) {
-        shader->setFloat("time", (float)glfwGetTime());
+        static bool gKeyPressed = false;
+        bool gKeyCurrentlyPressed = (glfwGetKey(getWindow(), GLFW_KEY_G) == GLFW_PRESS);
+        if (gKeyCurrentlyPressed && !gKeyPressed) {
+            geometryEffects = !geometryEffects;
+            menu->setGeometryEffects(geometryEffects);
+        }
+        gKeyPressed = gKeyCurrentlyPressed;
     }
-
-    GLint diffuseLocation = glGetUniformLocation(shader->ID, "diffuse");
-    if (diffuseLocation != -1) {
-        shader->setInt("diffuse", 0);
-    }
-
-    GLint specularLocation = glGetUniformLocation(shader->ID, "specular");
-    if (specularLocation != -1) {
-        shader->setInt("specular", 1);
-    }
-
-    static bool wireframe = false;
-    static bool tKeyPressed = false;
-    bool tKeyCurrentlyPressed = (glfwGetKey(getWindow(), GLFW_KEY_T) == GLFW_PRESS);
-    if (tKeyCurrentlyPressed && !tKeyPressed) {
-        wireframe = !wireframe;
-        std::cout << "WIREFRAME MODE " << (wireframe ? "ON" : "OFF") << std::endl;
-    }
-    tKeyPressed = tKeyCurrentlyPressed;
 
     if (wireframe) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -237,34 +318,66 @@ void Init::render() {
 
         try {
             shader->use();
-            model->Draw(*shader, *camera);
+            shader->setMat4("view", view);
+            shader->setMat4("projection", projection);
+            shader->setVec3("camPos", camera->Position);
+
+            GLint timeLocation = glGetUniformLocation(shader->ID, "time");
+            if (timeLocation != -1) {
+                shader->setFloat("time", (float)glfwGetTime());
+            }
+            else {
+                MyglobalLogger().logMessage(Logger::WARNING, "Failed to find uniform: time", __FILE__, __LINE__);
+            }
+
+            model->Draw(*shader, *camera, modelMatrix);
+
+            if (showNormals && normalsShader) {
+                glDisable(GL_BLEND);
+                glDepthMask(GL_TRUE);
+
+                normalsShader->use();
+                normalsShader->setMat4("view", view);
+                normalsShader->setMat4("projection", projection);
+                normalsShader->setVec3("camPos", camera->Position);
+
+                GLint normalsTimeLocation = glGetUniformLocation(normalsShader->ID, "time");
+                if (normalsTimeLocation != -1) {
+                    normalsShader->setFloat("time", (float)glfwGetTime());
+                }
+                else {
+                    MyglobalLogger().logMessage(Logger::WARNING, "Failed to find uniform: time in normalsShader", __FILE__, __LINE__);
+                }
+
+                model->Draw(*normalsShader, *camera, modelMatrix);
+
+                if (!wireframe) {
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_FALSE);
+                }
+            }
         }
         catch (const std::exception& e) {
-            std::cout << "Exception during model draw: " << e.what() << std::endl;
+            MyglobalLogger().logMessage(Logger::ERROR, "Problem with initiaize" + std::string(e.what()), __FILE__, __LINE__);
         }
 
         GLenum error = glGetError();
         if (error != GL_NO_ERROR) {
-            std::cout << "OpenGL error after model draw: " << error << std::endl;
+            MyglobalLogger().logMessage(Logger::ERROR, "OpenGL error after model draw: " + error, __FILE__, __LINE__);
         }
     }
 
-    glDepthMask(GL_TRUE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDisable(GL_BLEND);
-
-    textRender->use();
-
-    glm::mat4 textProjection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
-    textRender->setMat4("projection", textProjection);
-
+    glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
     if (font) {
         try {
-            textRender->setVec3("Color", glm::vec3(1.0f, 1.0f, 0.0f));
+            textRender->use();
+            glm::mat4 textProjection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
+            textRender->setMat4("projection", textProjection);
             textRender->setInt("image", 0);
 
             std::string text = "OpenGL Vendor: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
@@ -279,7 +392,7 @@ void Init::render() {
                 std::to_string(camera->Position.z);
             font->print(debugText.c_str(), 10.0f, 20.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
-            std::string FPSstring = "FPS: " + std::to_string(1.0f / deltaTime);
+            std::string FPSstring = "FPS: " + std::to_string((int)(1.0f / deltaTime));
             font->print(FPSstring.c_str(), 10.0f, 85.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
             if (model && !model->meshes.empty()) {
@@ -292,10 +405,10 @@ void Init::render() {
                 std::string glassInfo = "GLASS EFFECT ACTIVE";
                 font->print(glassInfo.c_str(), 10.0f, 105.0f, 1.0f, glm::vec3(0.8f, 1.0f, 0.8f));
 
-                std::string rotInfo = "Rotations X:" + std::to_string((int)debugRotationX) +
-                    " Y:" + std::to_string((int)debugRotationY) +
-                    " Z:" + std::to_string((int)debugRotationZ) +
-                    " Scale:" + std::to_string(bunnyScale);
+                std::string rotInfo = "Rotations X:" + std::to_string((int)modelRotation.x) +
+                    " Y:" + std::to_string((int)modelRotation.y) +
+                    " Z:" + std::to_string((int)modelRotation.z) +
+                    " Scale:" + std::to_string(modelScale.x);
                 font->print(rotInfo.c_str(), 10.0f, 155.0f, 0.8f, glm::vec3(1.0f, 1.0f, 0.0f));
             }
             else {
@@ -304,19 +417,54 @@ void Init::render() {
                 font->print(noModelText.c_str(), 10.0f, 105.0f, 0.7f, glm::vec3(1.0f, 0.0f, 0.0f));
             }
 
+            float statusY = 180.0f;
             if (wireframe) {
                 textRender->setVec3("Color", glm::vec3(1.0f, 0.5f, 0.0f));
                 std::string wireframeText = "WIREFRAME MODE ON";
-                font->print(wireframeText.c_str(), 10.0f, 180.0f, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
+                font->print(wireframeText.c_str(), 10.0f, statusY, 1.0f, glm::vec3(1.0f, 0.5f, 0.0f));
+                statusY += 25.0f;
+            }
+
+            if (showNormals) {
+                textRender->setVec3("Color", glm::vec3(0.8f, 0.3f, 0.0f));
+                std::string normalsText = "NORMALS DISPLAY ON";
+                font->print(normalsText.c_str(), 10.0f, statusY, 1.0f, glm::vec3(0.8f, 0.3f, 0.0f));
+                statusY += 25.0f;
+            }
+
+            if (geometryEffects) {
+                textRender->setVec3("Color", glm::vec3(1.0f, 0.0f, 1.0f));
+                std::string geomText = "GEOMETRY EFFECTS ON";
+                font->print(geomText.c_str(), 10.0f, statusY, 1.0f, glm::vec3(1.0f, 0.0f, 1.0f));
+                statusY += 25.0f;
+            }
+
+            if (menu->isEditorModeActive()) {
+                textRender->setVec3("Color", glm::vec3(0.2f, 1.0f, 0.2f));
+                std::string editorText = "EDITOR MODE ACTIVE - Press B to exit";
+                font->print(editorText.c_str(), 10.0f, statusY, 1.0f, glm::vec3(0.2f, 1.0f, 0.2f));
+                statusY += 25.0f;
+
+                textRender->setVec3("Color", glm::vec3(1.0f, 1.0f, 0.0f));
+                std::string guizmoText = "Guizmo: ";
+                if (menu->modelSelected) {
+                    if (ImGuizmo::IsUsing()) guizmoText += "TRANSFORMING";
+                    else if (ImGuizmo::IsOver()) guizmoText += "HOVER";
+                    else guizmoText += "READY";
+                }
+                else {
+                    guizmoText += "WAITING (click model)";
+                }
+                font->print(guizmoText.c_str(), 10.0f, statusY, 0.8f, glm::vec3(1.0f, 1.0f, 0.0f));
+                statusY += 25.0f;
             }
 
             textRender->setVec3("Color", glm::vec3(0.7f, 0.7f, 0.7f));
-            std::string controlsText = "Controls: WASD+Mouse | Space/Shift-Up/Down | T-Wireframe | 1-8 Rotate/Scale | ESC-Exit";
+            std::string controlsText = "Controls: WASD+Mouse | Space/Shift-Up/Down | T-Wireframe | N-Normals | G-GeomFX | B-Editor | ESC-Exit";
             font->print(controlsText.c_str(), 10.0f, static_cast<float>(height - 30), 0.5f, glm::vec3(0.7f, 0.7f, 0.7f));
 
-            std::string debugInstructions = "DEBUG: 1/2-RotX | 3/4-RotY | 5/6-RotZ | 7/8-Scale";
+            std::string debugInstructions = "EDITOR: B-Toggle Mode | 1/2/3-Transform Modes | Drag Gizmo to transform";
             font->print(debugInstructions.c_str(), 10.0f, static_cast<float>(height - 50), 0.5f, glm::vec3(0.0f, 1.0f, 1.0f));
-
         }
         catch (const std::exception& e) {
             static int errorCount = 0;
@@ -330,25 +478,4 @@ void Init::render() {
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
-
-    static int frameCount = 0;
-    frameCount++;
-    if (frameCount % 120 == 0) {
-        std::cout << "\n=== GLASS BUNNY DEBUG FRAME " << frameCount << " ===" << std::endl;
-        std::cout << "Window size: " << width << "x" << height << std::endl;
-        std::cout << "Camera pos: (" << camera->Position.x << ", " << camera->Position.y << ", " << camera->Position.z << ")" << std::endl;
-        std::cout << "Bunny pos: (" << modelPosition.x << ", " << modelPosition.y << ", " << modelPosition.z << ")" << std::endl;
-        std::cout << "Distance to bunny: " << glm::distance(camera->Position, modelPosition) << std::endl;
-        std::cout << "Rotations - X:" << debugRotationX << "° Y:" << debugRotationY << "° Z:" << debugRotationZ << "°" << std::endl;
-        std::cout << "Scale: " << bunnyScale << std::endl;
-        if (model && !model->meshes.empty()) {
-            std::cout << "Model: " << model->meshes.size() << " meshes, "
-                << model->meshes[0].vertices.size() << " vertices" << std::endl;
-        }
-        else {
-            std::cout << "Model: NOT LOADED - using fallback rendering" << std::endl;
-        }
-        std::cout << "Wireframe: " << (wireframe ? "ON" : "OFF") << std::endl;
-        std::cout << "========================================" << std::endl;
-    }
 }

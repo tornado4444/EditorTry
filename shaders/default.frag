@@ -15,6 +15,8 @@ void main(){
     
     vec3 finalColor = glassColor * depthFactor;
 
+    finalColor += vec3(sin(time * 2.0) * 0.05);
+
     float alpha = 0.3 + (1.0 - depthFactor) * 0.2;
     
     FragColor = vec4(finalColor, alpha);

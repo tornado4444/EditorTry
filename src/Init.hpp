@@ -17,6 +17,7 @@
 #include "Window.hpp"
 #include "Camera.hpp"
 #include "Model.hpp"
+#include "Menu.hpp"
 
 
 class Init : public Window {
@@ -37,14 +38,18 @@ public:
     void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
     void processInput(GLFWwindow* window);
-
+    void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    bool rayAABBIntersectWorld(const glm::vec3& origin, const glm::vec3& dir,
+        const glm::vec3& boxMin, const glm::vec3& boxMax);
 private:
     std::unique_ptr<Camera> camera;
     std::unique_ptr<Shader> shader;
+    std::unique_ptr<Shader> normalsShader;
     std::unique_ptr<Shader> textRender;
     std::unique_ptr<Font> font;
     std::unique_ptr<Texture> texture;
     std::unique_ptr<Model> model;
+    std::unique_ptr<Menu> menu;
 
 private:
     glm::mat4 projection;
