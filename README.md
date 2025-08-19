@@ -14,3 +14,7 @@ git clone https://github.com/tornado4444/EditorTry.git
 + T - wireframe.
 + N - Normals.
 + L - LBVH(very dirty).
++ Click on the model, been the Guizmo.
+
+### Result.
+
