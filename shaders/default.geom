@@ -27,7 +27,6 @@ void main() {
         texCoord = gs_in[i].texCoord;
         
         vec4 pos = gl_in[i].gl_Position;
-        // Расскомментировано: добавляем эффект искажения с time
         pos.xyz += Normal * sin(time + pos.x * 0.5) * 0.01;
         gl_Position = pos;
         

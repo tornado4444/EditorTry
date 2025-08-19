@@ -2,9 +2,6 @@
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath) {
     try {
-        std::cout << "=== SHADER CREATION DEBUG ===" << std::endl;
-        std::cout << "Vertex shader path: " << vertexPath << std::endl;
-        std::cout << "Fragment shader path: " << fragmentPath << std::endl;
         if (geometryPath != nullptr) {
             std::cout << "Geometry shader path: " << geometryPath << std::endl;
         }
@@ -87,7 +84,6 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
         if (hasGeometryShader) {
             std::cout << "Geometry shader included!" << std::endl;
         }
-        std::cout << "=============================" << std::endl;
 
         std::string logMessage = "SHADERS " + getShaderName(vertexPath) + " AND " + getShaderName(fragmentPath);
         if (hasGeometryShader) {
@@ -107,6 +103,57 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
         MyglobalLogger().logMessage(Logger::ERROR, "Shader creation failed: " + std::string(e.what()), __FILE__, __LINE__);
         throw;
     }
+}
+
+Shader::Shader(const char* computePath) {
+    try {
+        std::cout << "=== COMPUTE SHADER CREATION DEBUG ===" << std::endl;
+        std::cout << "Compute shader path: " << computePath << std::endl;
+
+        std::string computeCode = loadShaderFromFile(computePath);
+        const char* computeString = computeCode.c_str();
+
+        unsigned int compute = glCreateShader(GL_COMPUTE_SHADER);
+        if (compute == 0) {
+            throw std::runtime_error("Failed to create compute shader object");
+        }
+
+        glShaderSource(compute, 1, &computeString, NULL);
+        glCompileShader(compute);
+        checkCompileErrors(compute, "COMPUTE", getShaderName(computePath));
+
+        // Создаём программу
+        ID = glCreateProgram();
+        if (ID == 0) {
+            glDeleteShader(compute);
+            throw std::runtime_error("Failed to create compute shader program");
+        }
+
+        glAttachShader(ID, compute);
+        glLinkProgram(ID);
+        checkCompileErrors(ID, "PROGRAM", getShaderName(computePath));
+
+        glDeleteShader(compute);
+
+        std::cout << "Compute shader program created successfully with ID: " << ID << std::endl;
+        MyglobalLogger().logMessage(Logger::DEBUG, "COMPUTE SHADER " + getShaderName(computePath) + " LOADED AND COMPILED!", __FILE__, __LINE__);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception in Compute Shader constructor: " << e.what() << std::endl;
+        MyglobalLogger().logMessage(Logger::ERROR, "Compute shader creation failed: " + std::string(e.what()), __FILE__, __LINE__);
+        throw;
+    }
+}
+
+void Shader::dispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z) const {
+    if (ID == 0) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Cannot dispatch compute shader: invalid program ID", __FILE__, __LINE__);
+        return;
+    }
+    glUseProgram(ID);
+    glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+    // Добавим барьер для синхронизации (важно для LBVH)
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 Shader::~Shader() {
@@ -417,8 +464,6 @@ void Shader::setProjection(const glm::mat4 a_Projection) {
 }
 
 void Shader::debugUniforms() const {
-    std::cout << "\n=== SHADER " << ID << " UNIFORMS ===" << std::endl;
-
     GLint numUniforms = 0;
     glGetProgramiv(ID, GL_ACTIVE_UNIFORMS, &numUniforms);
 
@@ -427,7 +472,5 @@ void Shader::debugUniforms() const {
         GLenum type;
         GLchar uniformName[256];
         glGetActiveUniform(ID, i, sizeof(uniformName), nullptr, &size, &type, uniformName);
-        std::cout << "  - " << uniformName << " (type: " << type << ")" << std::endl;
     }
-    std::cout << "==============================" << std::endl;
 }

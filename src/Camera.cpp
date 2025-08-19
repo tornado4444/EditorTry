@@ -1,4 +1,3 @@
-#include <gl/glew.h>
 #include <cmath>
 #include "Camera.hpp"
 #include "../../src/Logger/Logger.hpp"

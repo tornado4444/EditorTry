@@ -1,0 +1,44 @@
+#version 460 core
+
+struct MortonCodeElement {
+    uint mortonCode;
+    uint elementIdx;
+};
+
+layout(local_size_x = 512) in;
+
+layout(std430, binding = 0) buffer MortonBuffer {
+    MortonCodeElement g_morton_codes[];
+};
+
+uniform int stage;
+uniform int step;
+uniform int numElements;
+
+void main() {
+    uint gID = gl_GlobalInvocationID.x;
+    
+    if (gID >= uint(numElements)) return;
+    
+    uint distance = 1u << (stage - step);
+    uint blockSize = 2u * distance;
+    uint blockID = gID / blockSize;
+    uint localID = gID % blockSize;
+    
+    bool ascending = (blockID & 1u) == 0u;
+    
+    uint leftID = blockID * blockSize + localID;
+    uint rightID = leftID + distance;
+    
+    if (rightID >= uint(numElements)) return;
+    
+    MortonCodeElement left = g_morton_codes[leftID];
+    MortonCodeElement right = g_morton_codes[rightID];
+    
+    bool swap = (left.mortonCode > right.mortonCode) == ascending;
+    
+    if (swap) {
+        g_morton_codes[leftID] = right;
+        g_morton_codes[rightID] = left;
+    }
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -9,6 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+
+#include "LBVH.hpp"
 
 class Menu {
 public:
@@ -41,7 +44,7 @@ public:
     glm::vec3 localMinBounds;
     glm::vec3 localMaxBounds;
     bool modelSelected;
-    // Геттеры/сеттеры для режимов рендеринга
+
     bool isWireframeMode() const { return wireframeMode; }
     bool isShowNormals() const { return showNormals; }
     bool isGeometryEffects() const { return geometryEffects; }
@@ -53,17 +56,17 @@ public:
     void setModelSelected(bool selected);
 
     void updateModelMatrix();
-private:
+public:
     bool showMainMenuBar;
     bool showDemo;
     bool showAbout;
     bool showFileDialog;
     bool showViewSettings;
     bool showRenderSettings;
-
     bool editorMode;
     bool bKeyPressed;
-
+    bool showLBVH;
+    bool rebuildLBVH;
     bool wireframeMode;
     bool showNormals;
     bool geometryEffects;
@@ -74,7 +77,8 @@ private:
     glm::vec3 modelRotation;
     glm::vec3 modelScale;
     glm::mat4 modelMatrix;
-    
+    float lastLBVHBuildTime;
+
     ImGuizmo::OPERATION guizmoOperation;
     ImGuizmo::MODE guizmoMode;
     bool useSnap;

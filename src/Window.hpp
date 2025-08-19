@@ -24,11 +24,10 @@ public:
 	virtual const char* titleWindow();
 
 protected:
-	float widthWindow = 1920.0f;    // Fixed typo: was 1980, should be 1920
+	float widthWindow = 1920.0f;    
 	float heightWindow = 1080.0f;
-	bool windowResize = false;      // Initialize the variable
+	bool windowResize = false;      
 
 private:
 	GLFWwindow* window;
-	// Removed problematic variables that had syntax errors
 };
