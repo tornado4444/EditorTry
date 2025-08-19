@@ -10,3 +10,4 @@ git clone https://github.com/tornado4444/EditorTry.git
 W, A, S, D - forward, backward, right, left.
 
 LSHIFT - down.
+Space - up.
