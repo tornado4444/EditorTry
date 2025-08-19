@@ -17,7 +17,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
 
     MyglobalLogger().logMessage(Logger::INFO, "Building LBVH for " + std::to_string(numTris) + " triangles", __FILE__, __LINE__);
 
-    // Проверяем контекст OpenGL
+
     if (!glfwGetCurrentContext()) {
         MyglobalLogger().logMessage(Logger::ERROR, "No OpenGL context available!", __FILE__, __LINE__);
         return;
@@ -207,7 +207,6 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
         glm::vec3 nodeMax(node.aabbMaxX, node.aabbMaxY, node.aabbMaxZ);
         glm::vec3 scale = nodeMax - nodeMin;
 
-        // Проверяем валидность AABB
         if (glm::any(glm::lessThanEqual(scale, glm::vec3(0.0001f))) ||
             glm::any(glm::isnan(nodeMin)) || glm::any(glm::isnan(nodeMax)) ||
             glm::any(glm::isinf(nodeMin)) || glm::any(glm::isinf(nodeMax))) {
@@ -302,7 +301,6 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
     glDeleteBuffers(1, &lbvhBuffer);
     glDeleteBuffers(1, &lbvhConstructionBuffer);
 
-    // Проверяем ошибки OpenGL
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
         MyglobalLogger().logMessage(Logger::ERROR,
