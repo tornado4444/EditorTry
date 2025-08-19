@@ -14,7 +14,7 @@ endif()
 set(LIBRARIES_DIR "${CMAKE_SOURCE_DIR}/libraries")
 
 if(NOT EXISTS "${LIBRARIES_DIR}")
-    message(FATAL_ERROR "Папка libraries не найдена! Создайте папку libraries в корне проекта.")
+    message(FATAL_ERROR "Folder libraries not found! Create a folder libraries in the root of the project.")
 endif()
 
 find_package(OpenGL REQUIRED)
@@ -23,7 +23,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/textures DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/models DESTINATION ${CMAKE_BINARY_DIR})
 
 if(EXISTS "${LIBRARIES_DIR}/glfw/CMakeLists.txt")
-    message(STATUS "Найден GLFW в libraries/glfw")
+    message(STATUS "Found GLFW in libraries/glfw")
     
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -33,12 +33,12 @@ if(EXISTS "${LIBRARIES_DIR}/glfw/CMakeLists.txt")
     add_subdirectory("${LIBRARIES_DIR}/glfw")
     set(GLFW_LIBRARIES glfw)
 else()
-    message(FATAL_ERROR "GLFW не найден в libraries/glfw/. Скачайте GLFW и распакуйте в эту папку.")
+    message(FATAL_ERROR "GLFW cannot find libraries/glfw/.")
 endif()
 
 set(GLEW_INCLUDE_DIR "${LIBRARIES_DIR}/glew/include")
 if(EXISTS "${GLEW_INCLUDE_DIR}/GL/glew.h")
-    message(STATUS "Найден GLEW в libraries/glew")
+    message(STATUS "Found GLEW.")
     
     add_definitions(-DGLEW_STATIC)
     
@@ -65,38 +65,38 @@ if(EXISTS "${GLEW_INCLUDE_DIR}/GL/glew.h")
         set(GLEW_LIBRARIES GLEW::GLEW)
     endif()
 else()
-    message(FATAL_ERROR "GLEW не найден в libraries/glew/. Скачайте GLEW и распакуйте в эту папку.")
+    message(FATAL_ERROR "GLEW cannot find.")
 endif()
 
 set(GLM_INCLUDE_DIR "${LIBRARIES_DIR}/glm")
 if(EXISTS "${GLM_INCLUDE_DIR}/glm/glm.hpp")
-    message(STATUS "Найден GLM в libraries/glm")
+    message(STATUS "Found GLM in libraries/glm")
 else()
-    message(FATAL_ERROR "GLM не найден в libraries/glm/. Скачайте GLM и распакуйте в эту папку.")
+    message(FATAL_ERROR "GLM not found in libraries/glm/. Download GLM and extract to this folder.")
 endif()
 
 set(STB_INCLUDE_DIR "${LIBRARIES_DIR}/stb")
 if(EXISTS "${STB_INCLUDE_DIR}/stb_image.hpp")
-    message(STATUS "Найден STB в libraries/stb")
+    message(STATUS "Found STB in libraries/stb")
 else()
-    message(WARNING "STB не найден в libraries/stb/. Скачайте stb_image.h и поместите в эту папку.")
+    message(WARNING "STB not found in libraries/stb/. Download stb_image.h and place in this folder.")
 endif()
 
 set(JSON_INCLUDE_DIR "${LIBRARIES_DIR}/json")
 if(EXISTS "${JSON_INCLUDE_DIR}/json.h")
-    message(STATUS "Найден JSON в libraries/json")
+    message(STATUS "Found JSON in libraries/json")
 elseif(EXISTS "${JSON_INCLUDE_DIR}/json.hpp")
-    message(STATUS "Найден JSON (nlohmann) в libraries/json")
+    message(STATUS "Found JSON (nlohmann) in libraries/json")
 elseif(EXISTS "${JSON_INCLUDE_DIR}/single_include/nlohmann/json.hpp")
-    message(STATUS "Найден JSON (nlohmann single_include) в libraries/json")
+    message(STATUS "Found JSON (nlohmann single_include) in libraries/json")
     set(JSON_INCLUDE_DIR "${JSON_INCLUDE_DIR}/single_include")
 else()
-    message(WARNING "JSON не найден в libraries/json/. Скачайте json.h или nlohmann/json.hpp и поместите в эту папку.")
+    message(WARNING "JSON not found in libraries/json/. Download json.h or nlohmann/json.hpp and place in this folder.")
 endif()
 
 set(IMGUI_INCLUDE_DIR "${LIBRARIES_DIR}/imgui")
 if(EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
-    message(STATUS "Найден ImGui в libraries/imgui")
+    message(STATUS "Found ImGui in libraries/imgui")
     
     set(IMGUI_SOURCES
         "${IMGUI_INCLUDE_DIR}/imgui.cpp"
@@ -115,18 +115,18 @@ if(EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
             "${GLFW_BACKEND_FILE}"
             "${OPENGL3_BACKEND_FILE}"
         )
-        message(STATUS "Найдены нужные бэкенды ImGui: GLFW и OpenGL3")
+        message(STATUS "Found required ImGui backends: GLFW and OpenGL3")
     else()
-        message(FATAL_ERROR "КРИТИЧЕСКАЯ ОШИБКА: Не найдены файлы бэкендов ImGui!")
+        message(FATAL_ERROR "CRITICAL ERROR: ImGui backend files not found!")
     endif()
     
 else()
-    message(FATAL_ERROR "ImGui не найден в libraries/imgui/. Скачайте ImGui и распакуйте в эту папку.")
+    message(FATAL_ERROR "ImGui not found in libraries/imgui/. Download ImGui and extract to this folder.")
 endif()
 
 set(IMGUIZMO_INCLUDE_DIR "${LIBRARIES_DIR}/imguizmo")
 if(EXISTS "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.h")
-    message(STATUS "Найден ImGuizmo в libraries/imguizmo")
+    message(STATUS "Found ImGuizmo in libraries/imguizmo")
     
     set(IMGUIZMO_SOURCES
         "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.cpp"
@@ -137,12 +137,12 @@ if(EXISTS "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.h")
     
     foreach(imguizmo_file ${IMGUIZMO_SOURCES})
         if(NOT EXISTS ${imguizmo_file})
-            message(WARNING "Файл ImGuizmo не найден: ${imguizmo_file}")
+            message(WARNING "Cannot find the ImGuizmo file: ${imguizmo_file}")
         endif()
     endforeach()
     
 else()
-    message(FATAL_ERROR "ImGuizmo не найден в libraries/imguizmo/")
+    message(FATAL_ERROR "ImGuizmo not found in libraries/imguizmo/")
 endif()
 
 file(GLOB_RECURSE SOURCES 
@@ -154,10 +154,6 @@ file(GLOB_RECURSE HEADERS
     "${CMAKE_SOURCE_DIR}/src/*.hpp" 
     "${CMAKE_SOURCE_DIR}/src/*.h"
 )
-
-if(NOT SOURCES)
-    message(FATAL_ERROR "Исходные файлы не найдены в папке src/. Создайте папку src и добавьте файл main.cpp")
-endif()
 
 set(STB_IMPLEMENTATION_FILE "${CMAKE_BINARY_DIR}/stb_implementation.cpp")
 file(WRITE ${STB_IMPLEMENTATION_FILE}

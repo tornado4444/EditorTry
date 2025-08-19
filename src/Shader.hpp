@@ -17,8 +17,8 @@ class Shader {
 public:
     Shader() : ID(0) {}
 
-    // Конструктор с опциональным геометрическим шейдером
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr);
+    Shader(const char* computePath);
 
     virtual ~Shader();
 
@@ -32,7 +32,6 @@ public:
     virtual void use() const;
     virtual void Activate() const { use(); }
 
-    // Методы для установки uniform переменных
     virtual void setBool(const std::string& name, bool value) const;
     virtual void setInt(const std::string& name, int value) const;
     virtual void setFloat(const std::string& name, float value) const;
@@ -54,8 +53,9 @@ public:
     static void setUniform(const char* a_Uniform, const GLint a_V0, const GLint a_V1);
     static void setProjection(const glm::mat4 a_Projection);
 
-    // Утилиты
+
     void debugUniforms() const;
+    void dispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z) const;
     bool isCompiled() const {
         return ID != 0;
     }

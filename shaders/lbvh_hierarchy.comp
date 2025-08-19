@@ -1,0 +1,165 @@
+#version 460 core
+
+#define INVALID_POINTER 0xFFFFFFFFu
+
+struct Element {
+    uint primitiveIdx;
+    float aabbMinX, aabbMinY, aabbMinZ;
+    float aabbMaxX, aabbMaxY, aabbMaxZ;
+};
+
+struct LBVHNode {
+    int left; // -1 for leaf
+    int right; // -1 for leaf
+    uint primitiveIdx; // 0 for inner nodes
+    float aabbMinX, aabbMinY, aabbMinZ;
+    float aabbMaxX, aabbMaxY, aabbMaxZ;
+};
+
+struct MortonCodeElement {
+    uint mortonCode;
+    uint elementIdx;
+};
+
+struct LBVHConstructionInfo {
+    uint parent;
+    int visitationCount;
+};
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer SortedMortonCodes { 
+    MortonCodeElement g_sorted_morton_codes[]; 
+};
+layout(std430, binding = 1) readonly buffer Elements { 
+    Element g_elements[]; 
+};
+layout(std430, binding = 2) writeonly buffer LBVH { 
+    LBVHNode g_lbvh[]; 
+};
+layout(std430, binding = 3) writeonly buffer LBVHConstructionInfos { 
+    LBVHConstructionInfo g_lbvh_construction_infos[]; 
+};
+
+uniform uint numElements;
+uniform uint absolutePointers;
+
+int clz(uint x) {
+    if (x == 0) return 32;
+    int n = 0;
+    if ((x & 0xFFFF0000u) == 0) { n += 16; x <<= 16; }
+    if ((x & 0xFF000000u) == 0) { n += 8; x <<= 8; }
+    if ((x & 0xF0000000u) == 0) { n += 4; x <<= 4; }
+    if ((x & 0xC0000000u) == 0) { n += 2; x <<= 2; }
+    if ((x & 0x80000000u) == 0) { n += 1; }
+    return n;
+}
+
+int findMSB(uint x) {
+    if (x == 0) return -1;
+    return 31 - clz(x);
+}
+
+int delta(int i, int j) {
+    if (j < 0 || j >= int(numElements)) return -1;
+    
+    uint codeI = g_sorted_morton_codes[i].mortonCode;
+    uint codeJ = g_sorted_morton_codes[j].mortonCode;
+    
+    if (codeI == codeJ) {
+        uint elementIdxI = g_sorted_morton_codes[i].elementIdx;
+        uint elementIdxJ = g_sorted_morton_codes[j].elementIdx;
+        uint xor_result = elementIdxI ^ elementIdxJ;
+        if (xor_result == 0) return 63; // Максимальное значение
+        return 32 + findMSB(xor_result);
+    }
+    
+    uint xor_result = codeI ^ codeJ;
+    if (xor_result == 0) return 31;
+    return findMSB(xor_result);
+}
+
+void determineRange(int idx, out int lower, out int upper) {
+    int deltaL = delta(idx, idx - 1);
+    int deltaR = delta(idx, idx + 1);
+    int d = (deltaR >= deltaL) ? 1 : -1;
+    int deltaMin = min(deltaL, deltaR);
+    
+    int lMax = 2;
+    while (delta(idx, idx + lMax * d) > deltaMin) {
+        lMax = lMax << 1;
+    }
+    
+    int l = 0;
+    for (int t = lMax >> 1; t > 0; t >>= 1) {
+        if (delta(idx, idx + (l + t) * d) > deltaMin) {
+            l += t;
+        }
+    }
+    
+    int jdx = idx + l * d;
+    lower = min(idx, jdx);
+    upper = max(idx, jdx);
+}
+
+int findSplit(int first, int last) {
+    int commonPrefix = delta(first, last);
+    int split = first;
+    int stride = last - first;
+    
+    do {
+        stride = (stride + 1) >> 1;
+        int newSplit = split + stride;
+        if (newSplit < last) {
+            int splitPrefix = delta(first, newSplit);
+            if (splitPrefix > commonPrefix) {
+                split = newSplit;
+            }
+        }
+    } while (stride > 1);
+    
+    return split;
+}
+
+void main() {
+    uint gID = gl_GlobalInvocationID.x;
+    const int LEAF_OFFSET = int(numElements) - 1;
+
+    // Создание листовых узлов
+    if (gID < numElements) {
+        uint elementIdx = g_sorted_morton_codes[gID].elementIdx;
+        if (elementIdx < numElements) { // Проверка границ
+            Element element = g_elements[elementIdx];
+            g_lbvh[LEAF_OFFSET + gID] = LBVHNode(
+                -1, -1, element.primitiveIdx, 
+                element.aabbMinX, element.aabbMinY, element.aabbMinZ,
+                element.aabbMaxX, element.aabbMaxY, element.aabbMaxZ
+            );
+        }
+    }
+
+    // Создание внутренних узлов
+    if (gID < numElements - 1) {
+        int first, last;
+        determineRange(int(gID), first, last);
+        int split = findSplit(first, last);
+
+        int childA = (split == first) ? LEAF_OFFSET + split : split;
+        int childB = (split + 1 == last) ? LEAF_OFFSET + split + 1 : split + 1;
+
+        if (absolutePointers != 0) {
+            g_lbvh[gID] = LBVHNode(childA, childB, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        } else {
+            g_lbvh[gID] = LBVHNode(childA - int(gID), childB - int(gID), 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        }
+        
+        // Установка информации о конструкции
+        g_lbvh_construction_infos[childA] = LBVHConstructionInfo(gID, 0);
+        g_lbvh_construction_infos[childB] = LBVHConstructionInfo(gID, 0);
+    }
+
+    // Инициализация корневого узла
+    if (gID == 0 && numElements > 0) {
+        g_lbvh_construction_infos[0] = LBVHConstructionInfo(0, 0);
+    }
+}

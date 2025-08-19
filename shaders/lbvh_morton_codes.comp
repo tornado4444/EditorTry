@@ -1,0 +1,67 @@
+#version 460 core
+
+struct Element {
+    uint primitiveIdx;
+    float aabbMinX, aabbMinY, aabbMinZ;
+    float aabbMaxX, aabbMaxY, aabbMaxZ;
+};
+
+struct MortonCodeElement {
+    uint mortonCode;
+    uint elementIdx;
+};
+
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) readonly buffer Elements { 
+    Element g_elements[]; 
+};
+layout(std430, binding = 1) writeonly buffer MortonCodes { 
+    MortonCodeElement g_morton_codes[]; 
+};
+
+uniform vec3 sceneMin;
+uniform vec3 sceneExtent;
+uniform uint numElements;
+
+uint expandBits(uint v) {
+    v = v & 0x000003FFu;               
+    v = (v ^ (v << 16)) & 0x030000FFu;
+    v = (v ^ (v << 8))  & 0x0300F00Fu;
+    v = (v ^ (v << 4))  & 0x030C30C3u;
+    v = (v ^ (v << 2))  & 0x09249249u;
+    return v;
+}
+
+uint morton3D(vec3 pos) {
+    vec3 safeExtent = max(sceneExtent, vec3(1e-6));
+    
+    vec3 normalized = clamp((pos - sceneMin) / safeExtent, 0.0, 1.0);
+    
+    uvec3 coords = uvec3(normalized * 1023.0);
+    
+    coords = min(coords, uvec3(1023u));
+    
+    uint xx = expandBits(coords.x);
+    uint yy = expandBits(coords.y);
+    uint zz = expandBits(coords.z);
+    
+    return xx * 4u + yy * 2u + zz;
+}
+
+void main() {
+    uint id = gl_GlobalInvocationID.x;
+    if (id >= numElements) return;
+
+    Element element = g_elements[id];
+    
+    vec3 aabbMin = vec3(element.aabbMinX, element.aabbMinY, element.aabbMinZ);
+    vec3 aabbMax = vec3(element.aabbMaxX, element.aabbMaxY, element.aabbMaxZ);
+    
+    vec3 center = (aabbMin + aabbMax) * 0.5;
+    
+    uint mortonCode = morton3D(center);
+    
+    g_morton_codes[id].mortonCode = mortonCode;
+    g_morton_codes[id].elementIdx = id;
+}

@@ -18,7 +18,7 @@
 #include "Camera.hpp"
 #include "Model.hpp"
 #include "Menu.hpp"
-
+#include "LBVH.hpp"
 
 class Init : public Window {
 public:
@@ -46,10 +46,17 @@ private:
     std::unique_ptr<Shader> shader;
     std::unique_ptr<Shader> normalsShader;
     std::unique_ptr<Shader> textRender;
+    std::unique_ptr<Shader> aabbShader;
+    std::unique_ptr<Shader> mortonShader;
+    std::unique_ptr<Shader> sortShader;
+    std::unique_ptr<Shader> hierarchyShader;
+    std::unique_ptr<Shader> lbvhAABBShader;
     std::unique_ptr<Font> font;
     std::unique_ptr<Texture> texture;
     std::unique_ptr<Model> model;
     std::unique_ptr<Menu> menu;
+    std::unique_ptr<BVH> bvh;
+    GLuint cubeVAO, cubeVBO, cubeEBO;
 
 private:
     glm::mat4 projection;

@@ -1,4 +1,3 @@
-#include "Window.hpp"
 #include "Init.hpp"
 
 auto main() -> int {
