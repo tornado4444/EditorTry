@@ -7,5 +7,6 @@ git clone https://github.com/tornado4444/EditorTry.git
 ```
 
 ### Keys
-W, A, S, D - forward, backward, right, left.\n
+W, A, S, D - forward, backward, right, left.
+
 LSHIFT - down.
