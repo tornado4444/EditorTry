@@ -1,3 +1,6 @@
 [submodule "libraries/glfw"]
 	path = libraries/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "libraries/imguizmo"]
+	path = libraries/imguizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git
