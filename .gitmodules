@@ -10,3 +10,6 @@
 [submodule "libraries/imgui"]
 	path = libraries/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "libraries/glew"]
+	path = libraries/glew
+	url = https://github.com/Perlmint/glew-cmake
