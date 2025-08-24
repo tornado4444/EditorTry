@@ -127,7 +127,7 @@ void Transform::updateTransforms() {
 		myLocalMatrix = glm::mat4(1.0f);
 		glm::mat4 rotationMatrix= toMat4(myLocalRotation);
 		myLocalMatrix = glm::translate(myLocalMatrix, myLocalPosition);
-		myLocalMatrix *= rotationMatrix;// = Pos * rot * scale
+		myLocalMatrix *= rotationMatrix;
 		myLocalMatrix = glm::scale(myLocalMatrix, myLocalScale);
 		hasDirty = false;
 

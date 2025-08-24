@@ -10,9 +10,9 @@ struct Element {
 };
 
 struct LBVHNode {
-    int left; // -1 for leaf
-    int right; // -1 for leaf
-    uint primitiveIdx; // 0 for inner nodes
+    int left; 
+    int right; 
+    uint primitiveIdx; 
     float aabbMinX, aabbMinY, aabbMinZ;
     float aabbMaxX, aabbMaxY, aabbMaxZ;
 };

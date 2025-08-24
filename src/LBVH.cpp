@@ -17,7 +17,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
 
     MyglobalLogger().logMessage(Logger::INFO, "Building LBVH for " + std::to_string(numTris) + " triangles", __FILE__, __LINE__);
 
-    // Проверяем контекст OpenGL
+
     if (!glfwGetCurrentContext()) {
         MyglobalLogger().logMessage(Logger::ERROR, "No OpenGL context available!", __FILE__, __LINE__);
         return;
@@ -101,7 +101,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mortonBuffer);
 
     glUniform3fv(glGetUniformLocation(mortonShader->ID, "sceneMin"), 1, glm::value_ptr(globalAABB.min));
-    extent = glm::max(extent, glm::vec3(0.0001f)); 
+    extent = glm::max(extent, glm::vec3(0.0001f));
     glUniform3fv(glGetUniformLocation(mortonShader->ID, "sceneExtent"), 1, glm::value_ptr(extent));
     glUniform1ui(glGetUniformLocation(mortonShader->ID, "numElements"), numTris);
 
@@ -126,7 +126,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
 
     std::sort(mortonData.begin(), mortonData.end(), [](const MortonCodeElement& a, const MortonCodeElement& b) {
         if (a.mortonCode == b.mortonCode) {
-            return a.elementIdx < b.elementIdx; 
+            return a.elementIdx < b.elementIdx;
         }
         return a.mortonCode < b.mortonCode;
         });
@@ -207,12 +207,11 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
         glm::vec3 nodeMax(node.aabbMaxX, node.aabbMaxY, node.aabbMaxZ);
         glm::vec3 scale = nodeMax - nodeMin;
 
-        // Проверяем валидность AABB
         if (glm::any(glm::lessThanEqual(scale, glm::vec3(0.0001f))) ||
             glm::any(glm::isnan(nodeMin)) || glm::any(glm::isnan(nodeMax)) ||
             glm::any(glm::isinf(nodeMin)) || glm::any(glm::isinf(nodeMax))) {
             degenerateCount++;
-            if (degenerateCount <= 5) { 
+            if (degenerateCount <= 5) {
                 MyglobalLogger().logMessage(Logger::DEBUG,
                     "Skipping degenerate node " + std::to_string(i) +
                     " - min:(" + std::to_string(nodeMin.x) + "," + std::to_string(nodeMin.y) + "," + std::to_string(nodeMin.z) +
@@ -226,7 +225,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
         glm::vec3 center = (nodeMin + nodeMax) * 0.5f;
         center += glm::vec3(8.3, 0.0, 8.0);
 
-        scale = glm::max(scale, glm::vec3(0.001f)); 
+        scale = glm::max(scale, glm::vec3(0.001f));
 
         instanceData.push_back(center);
         instanceData.push_back(scale);
@@ -302,7 +301,6 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
     glDeleteBuffers(1, &lbvhBuffer);
     glDeleteBuffers(1, &lbvhConstructionBuffer);
 
-    // Проверяем ошибки OpenGL
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
         MyglobalLogger().logMessage(Logger::ERROR,

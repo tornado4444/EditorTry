@@ -38,24 +38,18 @@ void main() {
     
     if (gID >= numElements) return;
     
-    // Начинаем с листового узла
     uint nodeIdx = g_lbvh_construction_infos[LEAF_OFFSET + gID].parent;
     
-    while (nodeIdx < numElements - 1) { // Проверка границ для внутренних узлов
-        // Атомарное увеличение счетчика посещений
+    while (nodeIdx < numElements - 1) { 
         int visitations = atomicAdd(g_lbvh_construction_infos[nodeIdx].visitationCount, 1);
         
-        // Если это первое посещение, выходим и ждем второго потока
         if (visitations == 0) return;
         
-        // Второе посещение - вычисляем AABB
         LBVHNode bvhNode = g_lbvh[nodeIdx];
         
-        // Получение индексов дочерних узлов
         int leftIdx = (absolutePointers != 0) ? bvhNode.left : int(nodeIdx) + bvhNode.left;
         int rightIdx = (absolutePointers != 0) ? bvhNode.right : int(nodeIdx) + bvhNode.right;
         
-        // Проверка границ
         if (leftIdx < 0 || leftIdx >= int(2 * numElements - 1) || 
             rightIdx < 0 || rightIdx >= int(2 * numElements - 1)) {
             return;
@@ -69,16 +63,14 @@ void main() {
         vec3 minB = vec3(rightChild.aabbMinX, rightChild.aabbMinY, rightChild.aabbMinZ);
         vec3 maxB = vec3(rightChild.aabbMaxX, rightChild.aabbMaxY, rightChild.aabbMaxZ);
         
-        // Проверка на валидность AABB (не должны быть нулевыми)
         if (all(equal(minA, vec3(0.0))) && all(equal(maxA, vec3(0.0))) ||
             all(equal(minB, vec3(0.0))) && all(equal(maxB, vec3(0.0)))) {
-            return; // Пропускаем невалидные AABB
+            return; 
         }
         
         vec3 minAABB, maxAABB;
         aabbUnion(minA, maxA, minB, maxB, minAABB, maxAABB);
         
-        // Обновление AABB текущего узла
         g_lbvh[nodeIdx].aabbMinX = minAABB.x;
         g_lbvh[nodeIdx].aabbMinY = minAABB.y;
         g_lbvh[nodeIdx].aabbMinZ = minAABB.z;
@@ -86,10 +78,8 @@ void main() {
         g_lbvh[nodeIdx].aabbMaxY = maxAABB.y;
         g_lbvh[nodeIdx].aabbMaxZ = maxAABB.z;
         
-        // Если достигли корня, завершаем
         if (nodeIdx == 0) return;
         
-        // Переход к родительскому узлу
         nodeIdx = g_lbvh_construction_infos[nodeIdx].parent;
     }
 }

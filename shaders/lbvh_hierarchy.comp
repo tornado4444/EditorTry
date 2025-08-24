@@ -70,7 +70,7 @@ int delta(int i, int j) {
         uint elementIdxI = g_sorted_morton_codes[i].elementIdx;
         uint elementIdxJ = g_sorted_morton_codes[j].elementIdx;
         uint xor_result = elementIdxI ^ elementIdxJ;
-        if (xor_result == 0) return 63; // Максимальное значение
+        if (xor_result == 0) return 63; 
         return 32 + findMSB(xor_result);
     }
     
@@ -125,10 +125,9 @@ void main() {
     uint gID = gl_GlobalInvocationID.x;
     const int LEAF_OFFSET = int(numElements) - 1;
 
-    // Создание листовых узлов
     if (gID < numElements) {
         uint elementIdx = g_sorted_morton_codes[gID].elementIdx;
-        if (elementIdx < numElements) { // Проверка границ
+        if (elementIdx < numElements) { 
             Element element = g_elements[elementIdx];
             g_lbvh[LEAF_OFFSET + gID] = LBVHNode(
                 -1, -1, element.primitiveIdx, 
@@ -138,7 +137,6 @@ void main() {
         }
     }
 
-    // Создание внутренних узлов
     if (gID < numElements - 1) {
         int first, last;
         determineRange(int(gID), first, last);
@@ -153,12 +151,10 @@ void main() {
             g_lbvh[gID] = LBVHNode(childA - int(gID), childB - int(gID), 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         }
         
-        // Установка информации о конструкции
         g_lbvh_construction_infos[childA] = LBVHConstructionInfo(gID, 0);
         g_lbvh_construction_infos[childB] = LBVHConstructionInfo(gID, 0);
     }
 
-    // Инициализация корневого узла
     if (gID == 0 && numElements > 0) {
         g_lbvh_construction_infos[0] = LBVHConstructionInfo(0, 0);
     }

@@ -84,7 +84,6 @@ void Camera::ProcessMouseScroll(float yoffset) {
 	if (Zoom >= MAX_FOV) {
 		Zoom = MAX_FOV;
 	}
-	// Обновляем также переменную fov
 	fov = Zoom;
 }
 

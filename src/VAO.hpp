@@ -1,5 +1,5 @@
 #pragma once
-#include <gl/glew.h>
+#include <GL/glew.h>
 #include "VBO.hpp"
 #include "EBO.hpp"
 
@@ -15,11 +15,9 @@ public:
         }
     }
 
-    // Запрещаем копирование (RAII)
     VAO(const VAO&) = delete;
     VAO& operator=(const VAO&) = delete;
 
-    // Разрешаем перемещение (move semantics)
     VAO(VAO&& other) noexcept : ID(other.ID) {
         other.ID = 0;
     }
@@ -55,5 +53,5 @@ public:
     }
 
 private:
-    GLuint ID = 0; // Инициализируем нулем для безопасности
+    GLuint ID = 0; 
 };

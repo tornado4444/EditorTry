@@ -42,7 +42,6 @@ void Init::initialize() {
         }
     }
 
-    // Проверка версии OpenGL
     MyglobalLogger().logMessage(Logger::INFO, "OpenGL Version: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))), __FILE__, __LINE__);
 
     try {
@@ -71,11 +70,6 @@ void Init::initialize() {
             menu->setModelBounds(overallMin, overallMax);
 
             glm::mat4 initialModelMatrix = menu->getModelMatrix();
-            /*std::vector<glm::vec3> transformedPositions;
-            transformedPositions.reserve(positions.size());
-            for (const auto& pos : positions) {
-                transformedPositions.push_back(glm::vec3(initialModelMatrix * glm::vec4(pos, 1.0f)));
-            }*/
 
             double startTime = glfwGetTime();
             bvh->buildLBVHDynamic(positions, indices, mortonShader.get(), sortShader.get(), hierarchyShader.get(), lbvhAABBShader.get());
@@ -274,7 +268,6 @@ void Init::render() {
     projection = glm::perspective(glm::radians(camera->Zoom), (float)width / (float)height, 0.1f, 200.0f);
     view = camera->getViewMatrix();
 
-    // === ПРОВЕРКА ИЗМЕНЕНИЯ ТРАНСФОРМАЦИИ И ПЕРЕСЧЕТ LBVH ===
     static glm::mat4 lastModelMatrix = glm::mat4(0.0f);
     glm::mat4 currentModelMatrix = menu->getModelMatrix();
 
@@ -285,14 +278,13 @@ void Init::render() {
 
             for (const auto& mesh : model->meshes) {
                 for (const auto& vertex : mesh.vertices) {
-                    positions.push_back(vertex.position); // Локальные координаты
+                    positions.push_back(vertex.position); 
                 }
                 for (const auto& index : mesh.indices) {
                     indices.push_back(index);
                 }
             }
 
-            // Применяем текущую трансформацию
             std::vector<glm::vec3> transformedPositions;
             transformedPositions.reserve(positions.size());
             for (const auto& pos : positions) {
@@ -472,7 +464,6 @@ void Init::render() {
             std::string FPSstring = "FPS: " + std::to_string((int)(1.0f / deltaTime));
             font->print(FPSstring.c_str(), 10.0f, 85.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
-            // Информация о модели
             if (model && !model->meshes.empty()) {
                 textRender->setVec3("Color", glm::vec3(0.0f, 0.8f, 1.0f));
                 std::string meshInfo = "Glass Bunny | Meshes: " + std::to_string(model->meshes.size()) +
@@ -489,7 +480,6 @@ void Init::render() {
                     " Scale:" + std::to_string(modelScale.x);
                 font->print(rotInfo.c_str(), 10.0f, 155.0f, 0.8f, glm::vec3(1.0f, 1.0f, 0.0f));
 
-                // ВАЖНАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ ДЛЯ LBVH
                 if (bvh->numInternalNodes > 0) {
                     textRender->setVec3("Color", glm::vec3(1.0f, 0.0f, 1.0f));
                     std::string lbvhDebug = "LBVH Nodes: " + std::to_string(bvh->numInternalNodes) +
@@ -498,7 +488,6 @@ void Init::render() {
                 }
             }
 
-            // Статусы режимов
             float statusY = 180.0f;
             if (wireframe) {
                 textRender->setVec3("Color", glm::vec3(1.0f, 0.5f, 0.0f));
@@ -525,7 +514,6 @@ void Init::render() {
                 statusY += 25.0f;
             }
 
-            // Информация о редакторе
             if (menu->isEditorModeActive()) {
                 textRender->setVec3("Color", glm::vec3(0.2f, 1.0f, 0.2f));
                 std::string editorText = "EDITOR MODE ACTIVE - Press B to exit";
@@ -546,7 +534,6 @@ void Init::render() {
                 statusY += 25.0f;
             }
 
-            // Инструкции
             textRender->setVec3("Color", glm::vec3(0.7f, 0.7f, 0.7f));
             std::string controlsText = "Controls: WASD+Mouse | Space/Shift-Up/Down | T-Wireframe | N-Normals | G-GeomFX | L-LBVH | B-Editor | ESC-Exit";
             font->print(controlsText.c_str(), 10.0f, static_cast<float>(height - 30), 0.5f, glm::vec3(0.7f, 0.7f, 0.7f));

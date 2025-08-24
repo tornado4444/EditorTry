@@ -12,39 +12,45 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(LIBRARIES_DIR "${CMAKE_SOURCE_DIR}/libraries")
+set(SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 
-if(NOT EXISTS "${LIBRARIES_DIR}")
-    message(FATAL_ERROR "Folder libraries not found! Create a folder libraries in the root of the project.")
+if(EXISTS "${CMAKE_SOURCE_DIR}/textures")
+    file(COPY ${CMAKE_SOURCE_DIR}/textures DESTINATION ${CMAKE_BINARY_DIR})
+endif()
+if(EXISTS "${CMAKE_SOURCE_DIR}/models")
+    file(COPY ${CMAKE_SOURCE_DIR}/models DESTINATION ${CMAKE_BINARY_DIR})
 endif()
 
 find_package(OpenGL REQUIRED)
 
-file(COPY ${CMAKE_SOURCE_DIR}/textures DESTINATION ${CMAKE_BINARY_DIR})
-file(COPY ${CMAKE_SOURCE_DIR}/models DESTINATION ${CMAKE_BINARY_DIR})
 
-if(EXISTS "${LIBRARIES_DIR}/glfw/CMakeLists.txt")
-    message(STATUS "Found GLFW in libraries/glfw")
-    
+find_package(glfw3 QUIET)
+if(glfw3_FOUND)
+    message(STATUS "Using system GLFW")
+    set(GLFW_LIBRARIES glfw)
+elseif(EXISTS "${LIBRARIES_DIR}/glfw/CMakeLists.txt")
+    message(STATUS "Using local GLFW from libraries/glfw")
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-    
     add_subdirectory("${LIBRARIES_DIR}/glfw")
     set(GLFW_LIBRARIES glfw)
 else()
-    message(FATAL_ERROR "GLFW cannot find libraries/glfw/.")
+    message(FATAL_ERROR "GLFW not found! Install with: sudo pacman -S glfw OR put GLFW in libraries/glfw/")
 endif()
 
-set(GLEW_INCLUDE_DIR "${LIBRARIES_DIR}/glew/include")
-if(EXISTS "${GLEW_INCLUDE_DIR}/GL/glew.h")
-    message(STATUS "Found GLEW.")
-    
+find_package(GLEW QUIET)
+if(GLEW_FOUND)
+    message(STATUS "Using system GLEW")
+    set(GLEW_LIBRARIES GLEW::GLEW)
+elseif(EXISTS "${LIBRARIES_DIR}/glew/include/GL/glew.h")
+    message(STATUS "Using local GLEW from libraries/glew")
     add_definitions(-DGLEW_STATIC)
+    set(GLEW_INCLUDE_DIR "${LIBRARIES_DIR}/glew/include")
     
     if(WIN32)
         add_library(glew_static STATIC IMPORTED)
-
         if(CMAKE_SIZEOF_VOID_P EQUAL 8)
             set_target_properties(glew_static PROPERTIES
                 IMPORTED_LOCATION_DEBUG "${LIBRARIES_DIR}/glew/lib/Debug/x64/glew32sd.lib"
@@ -58,45 +64,58 @@ if(EXISTS "${GLEW_INCLUDE_DIR}/GL/glew.h")
                 INTERFACE_INCLUDE_DIRECTORIES "${GLEW_INCLUDE_DIR}"
             )
         endif()
-        
         set(GLEW_LIBRARIES glew_static)
     else()
         find_package(GLEW REQUIRED)
         set(GLEW_LIBRARIES GLEW::GLEW)
     endif()
 else()
-    message(FATAL_ERROR "GLEW cannot find.")
+    message(FATAL_ERROR "GLEW not found! Install with: sudo pacman -S glew")
 endif()
 
-set(GLM_INCLUDE_DIR "${LIBRARIES_DIR}/glm")
-if(EXISTS "${GLM_INCLUDE_DIR}/glm/glm.hpp")
-    message(STATUS "Found GLM in libraries/glm")
+find_package(glm QUIET)
+if(glm_FOUND)
+    message(STATUS "Using system GLM")
+elseif(EXISTS "${LIBRARIES_DIR}/glm/glm/glm.hpp")
+    message(STATUS "Using local GLM from libraries/glm")
+    set(GLM_INCLUDE_DIR "${LIBRARIES_DIR}/glm")
 else()
-    message(FATAL_ERROR "GLM not found in libraries/glm/. Download GLM and extract to this folder.")
+    message(FATAL_ERROR "GLM not found! Install with: sudo pacman -S glm OR put GLM in libraries/glm/")
 endif()
 
-set(STB_INCLUDE_DIR "${LIBRARIES_DIR}/stb")
-if(EXISTS "${STB_INCLUDE_DIR}/stb_image.hpp")
-    message(STATUS "Found STB in libraries/stb")
+
+find_package(nlohmann_json QUIET)
+if(nlohmann_json_FOUND)
+    message(STATUS "Using system nlohmann_json")
+    set(JSON_LIBRARIES nlohmann_json::nlohmann_json)
+elseif(EXISTS "${LIBRARIES_DIR}/json/json.h")
+    message(STATUS "Using local JSON from libraries/json (json.h)")
+    set(JSON_INCLUDE_DIR "${LIBRARIES_DIR}/json")
+elseif(EXISTS "${LIBRARIES_DIR}/json/json.hpp")
+    message(STATUS "Using local JSON from libraries/json (json.hpp)")
+    set(JSON_INCLUDE_DIR "${LIBRARIES_DIR}/json")
+elseif(EXISTS "${LIBRARIES_DIR}/json/single_include/nlohmann/json.hpp")
+    message(STATUS "Using local JSON from libraries/json (single_include)")
+    set(JSON_INCLUDE_DIR "${LIBRARIES_DIR}/json/single_include")
 else()
-    message(WARNING "STB not found in libraries/stb/. Download stb_image.h and place in this folder.")
+    message(WARNING "JSON not found, but continuing...")
 endif()
 
-set(JSON_INCLUDE_DIR "${LIBRARIES_DIR}/json")
-if(EXISTS "${JSON_INCLUDE_DIR}/json.h")
-    message(STATUS "Found JSON in libraries/json")
-elseif(EXISTS "${JSON_INCLUDE_DIR}/json.hpp")
-    message(STATUS "Found JSON (nlohmann) in libraries/json")
-elseif(EXISTS "${JSON_INCLUDE_DIR}/single_include/nlohmann/json.hpp")
-    message(STATUS "Found JSON (nlohmann single_include) in libraries/json")
-    set(JSON_INCLUDE_DIR "${JSON_INCLUDE_DIR}/single_include")
+if(EXISTS "${LIBRARIES_DIR}/stb/stb_image.hpp")
+    message(STATUS "Found STB (.hpp) in libraries/stb")
+    set(STB_INCLUDE_DIR "${LIBRARIES_DIR}/stb")
+    set(STB_IS_HPP TRUE)
+elseif(EXISTS "${LIBRARIES_DIR}/stb/stb_image.h")
+    message(STATUS "Found STB (.h) in libraries/stb")
+    set(STB_INCLUDE_DIR "${LIBRARIES_DIR}/stb")  
+    set(STB_IS_HPP FALSE)
 else()
-    message(WARNING "JSON not found in libraries/json/. Download json.h or nlohmann/json.hpp and place in this folder.")
+    message(FATAL_ERROR "STB not found! Put stb_image.h or stb_image.hpp in libraries/stb/")
 endif()
 
-set(IMGUI_INCLUDE_DIR "${LIBRARIES_DIR}/imgui")
-if(EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
+if(EXISTS "${LIBRARIES_DIR}/imgui/imgui.h")
     message(STATUS "Found ImGui in libraries/imgui")
+    set(IMGUI_INCLUDE_DIR "${LIBRARIES_DIR}/imgui")
     
     set(IMGUI_SOURCES
         "${IMGUI_INCLUDE_DIR}/imgui.cpp"
@@ -104,29 +123,16 @@ if(EXISTS "${IMGUI_INCLUDE_DIR}/imgui.h")
         "${IMGUI_INCLUDE_DIR}/imgui_draw.cpp"
         "${IMGUI_INCLUDE_DIR}/imgui_tables.cpp"
         "${IMGUI_INCLUDE_DIR}/imgui_widgets.cpp"
+        "${IMGUI_INCLUDE_DIR}/backends/imgui_impl_glfw.cpp"
+        "${IMGUI_INCLUDE_DIR}/backends/imgui_impl_opengl3.cpp"
     )
-    
-    set(IMGUI_BACKENDS_DIR "${IMGUI_INCLUDE_DIR}/backends")
-    set(GLFW_BACKEND_FILE "${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp")
-    set(OPENGL3_BACKEND_FILE "${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp")
-    
-    if(EXISTS "${GLFW_BACKEND_FILE}" AND EXISTS "${OPENGL3_BACKEND_FILE}")
-        list(APPEND IMGUI_SOURCES
-            "${GLFW_BACKEND_FILE}"
-            "${OPENGL3_BACKEND_FILE}"
-        )
-        message(STATUS "Found required ImGui backends: GLFW and OpenGL3")
-    else()
-        message(FATAL_ERROR "CRITICAL ERROR: ImGui backend files not found!")
-    endif()
-    
 else()
-    message(FATAL_ERROR "ImGui not found in libraries/imgui/. Download ImGui and extract to this folder.")
+    message(FATAL_ERROR "ImGui not found in libraries/imgui/!")
 endif()
 
-set(IMGUIZMO_INCLUDE_DIR "${LIBRARIES_DIR}/imguizmo")
-if(EXISTS "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.h")
+if(EXISTS "${LIBRARIES_DIR}/imguizmo/ImGuizmo.h")
     message(STATUS "Found ImGuizmo in libraries/imguizmo")
+    set(IMGUIZMO_INCLUDE_DIR "${LIBRARIES_DIR}/imguizmo")
     
     set(IMGUIZMO_SOURCES
         "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.cpp"
@@ -134,123 +140,97 @@ if(EXISTS "${IMGUIZMO_INCLUDE_DIR}/ImGuizmo.h")
         "${IMGUIZMO_INCLUDE_DIR}/ImGradient.cpp"
         "${IMGUIZMO_INCLUDE_DIR}/ImSequencer.cpp"
     )
-    
-    foreach(imguizmo_file ${IMGUIZMO_SOURCES})
-        if(NOT EXISTS ${imguizmo_file})
-            message(WARNING "Cannot find the ImGuizmo file: ${imguizmo_file}")
-        endif()
-    endforeach()
-    
 else()
-    message(FATAL_ERROR "ImGuizmo not found in libraries/imguizmo/")
+    message(WARNING "ImGuizmo not found in libraries/imguizmo/, continuing without it...")
+    set(IMGUIZMO_SOURCES "")
 endif()
 
+
 file(GLOB_RECURSE SOURCES 
-    "${CMAKE_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_SOURCE_DIR}/src/*.c"
+    "${SRC_DIR}/*.cpp"
+    "${SRC_DIR}/*.c"
 )
 
 file(GLOB_RECURSE HEADERS
-    "${CMAKE_SOURCE_DIR}/src/*.hpp" 
-    "${CMAKE_SOURCE_DIR}/src/*.h"
+    "${SRC_DIR}/*.hpp" 
+    "${SRC_DIR}/*.h"
 )
 
 set(STB_IMPLEMENTATION_FILE "${CMAKE_BINARY_DIR}/stb_implementation.cpp")
-file(WRITE ${STB_IMPLEMENTATION_FILE}
+if(STB_IS_HPP)
+    file(WRITE ${STB_IMPLEMENTATION_FILE}
 "#define STB_IMAGE_IMPLEMENTATION
 #include \"stb_image.hpp\"
 ")
+else()
+    file(WRITE ${STB_IMPLEMENTATION_FILE}
+"#define STB_IMAGE_IMPLEMENTATION
+#include \"stb_image.h\"
+")
+endif()
 
 list(APPEND SOURCES ${STB_IMPLEMENTATION_FILE})
 list(APPEND SOURCES ${IMGUI_SOURCES})
-list(APPEND SOURCES ${IMGUIZMO_SOURCES})
+if(IMGUIZMO_SOURCES)
+    list(APPEND SOURCES ${IMGUIZMO_SOURCES})
+endif()
+
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    "${CMAKE_SOURCE_DIR}/src"
-    "${CMAKE_SOURCE_DIR}/src/font"
-    "${CMAKE_SOURCE_DIR}/src/Logger"
+set(INCLUDE_DIRS
+    "${SRC_DIR}"
+    "${SRC_DIR}/font"
+    "${SRC_DIR}/Logger"
     "${CMAKE_SOURCE_DIR}/shaders"
-    "${GLM_INCLUDE_DIR}"
-    "${GLEW_INCLUDE_DIR}"
     "${STB_INCLUDE_DIR}"
-    "${JSON_INCLUDE_DIR}"
     "${IMGUI_INCLUDE_DIR}"
     "${IMGUI_INCLUDE_DIR}/backends"
-    "${IMGUIZMO_INCLUDE_DIR}"
 )
+
+if(GLM_INCLUDE_DIR)
+    list(APPEND INCLUDE_DIRS "${GLM_INCLUDE_DIR}")
+endif()
+
+if(GLEW_INCLUDE_DIR)
+    list(APPEND INCLUDE_DIRS "${GLEW_INCLUDE_DIR}")
+endif()
+
+if(JSON_INCLUDE_DIR)
+    list(APPEND INCLUDE_DIRS "${JSON_INCLUDE_DIR}")
+endif()
+
+if(IMGUIZMO_INCLUDE_DIR)
+    list(APPEND INCLUDE_DIRS "${IMGUIZMO_INCLUDE_DIR}")
+endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
     GLM_ENABLE_EXPERIMENTAL
-    GLEW_STATIC
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${GLFW_LIBRARIES}
-    ${GLEW_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-)
-
-if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        gdi32
-        user32
-        kernel32
-        shell32
-    )
-elseif(APPLE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        "-framework OpenGL"
-        "-framework Cocoa"
-        "-framework IOKit" 
-        "-framework CoreVideo"
-    )
-else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        ${CMAKE_DL_LIBS}
-        pthread
-        m
-        X11
-        Xrandr
-        Xi
-        Xcursor
-    )
+if(GLEW_INCLUDE_DIR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE GLEW_STATIC)
 endif()
 
-if(MSVC)
-    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-    
-    foreach(source IN ITEMS ${SOURCES})
-        get_filename_component(source_path "${source}" PATH)
-        file(RELATIVE_PATH source_path_rel "${CMAKE_SOURCE_DIR}/src" "${source_path}")
-        string(REPLACE "/" "\\" group_path "${source_path_rel}")
-        if(NOT group_path STREQUAL "")
-            source_group("Source Files\\${group_path}" FILES "${source}")
-        else()
-            source_group("Source Files" FILES "${source}")
-        endif()
-    endforeach()
-    
-    foreach(header IN ITEMS ${HEADERS})
-        get_filename_component(header_path "${header}" PATH)
-        file(RELATIVE_PATH header_path_rel "${CMAKE_SOURCE_DIR}/src" "${header_path}")
-        string(REPLACE "/" "\\" group_path "${header_path_rel}")
-        if(NOT group_path STREQUAL "")
-            source_group("Header Files\\${group_path}" FILES "${header}")
-        else()
-            source_group("Header Files" FILES "${header}")
-        endif()
-    endforeach()
-    
-    source_group("ImGui" FILES ${IMGUI_SOURCES})
-    source_group("imguizmo" FILES ${IMGUIZMO_SOURCES})
-    
-    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-                 PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-                 
-    target_compile_definitions(${PROJECT_NAME} PRIVATE 
-        _CRT_SECURE_NO_WARNINGS
-        _SCL_SECURE_NO_WARNINGS
-    )
+set(LINK_LIBRARIES
+    ${GLFW_LIBRARIES}
+    ${GLEW_LIBRARIES}
+    OpenGL::GL
+)
+
+if(JSON_LIBRARIES)
+    list(APPEND LINK_LIBRARIES ${JSON_LIBRARIES})
+endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${LINK_LIBRARIES})
+
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE gdi32 user32 kernel32 shell32)
+elseif(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        "-framework OpenGL" "-framework Cocoa" "-framework IOKit" "-framework CoreVideo")
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS} pthread m X11 Xrandr Xi Xcursor)
 endif()

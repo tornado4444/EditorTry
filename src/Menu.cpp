@@ -179,7 +179,7 @@ void Menu::renderGuizmo(const glm::mat4& view, const glm::mat4& projection) {
         modelRotation = rotation;
         modelScale = scale;
         modelMatrix = currentMatrix;
-        rebuildLBVH = true; // Триггер пересчёта LBVH при трансформации
+        rebuildLBVH = true; 
     }
 }
 
@@ -191,7 +191,6 @@ void Menu::debugGuizmoState() {
         std::cout << "Display Size: " << io.DisplaySize.x << "x" << io.DisplaySize.y << std::endl;
         std::cout << "Mouse Pos: " << io.MousePos.x << ", " << io.MousePos.y << std::endl;
         std::cout << "WantCaptureMouse: " << io.WantCaptureMouse << std::endl;
-        std::cout << "===================" << std::endl;
     }
 }
 

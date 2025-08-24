@@ -1,6 +1,6 @@
 // Shader.hpp
 #pragma once
-#include <gl/glew.h>
+#include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <GLFW/glfw3.h>

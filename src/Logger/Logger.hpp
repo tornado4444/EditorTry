@@ -33,7 +33,11 @@ struct Format {
         auto time = std::chrono::system_clock::to_time_t(now);
         std::stringstream ss;
         std::tm local_tm;
+#ifdef _WIN32
         localtime_s(&local_tm, &time);
+#else
+        localtime_r(&time, &local_tm);
+#endif
         ss << std::put_time(&local_tm, "%H:%M:%S");
         return ss.str();
     }

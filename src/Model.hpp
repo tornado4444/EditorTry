@@ -1,6 +1,9 @@
 #pragma once
-
-#include <json.h>
+#ifdef _WIN32
+	#include <json.h>
+#else
+	#include <nlohmann/json.hpp>
+#endif
 #include "Mesh.hpp"
 
 using json = nlohmann::json;
