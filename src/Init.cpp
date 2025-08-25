@@ -1,4 +1,4 @@
-﻿#include "Init.hpp"
+#include "Init.hpp"
 #include "Menu.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,15 +17,16 @@ Init::Init() : Window() {
 }
 
 void Init::initialize() {
-    shader = std::make_unique<Shader>("../../../shaders/default.vert", "../../../shaders/default.frag", "../../../shaders/default.geom");
-    textRender = std::make_unique<Shader>("../../../shaders/textShader.vert", "../../../shaders/textShader.frag");
-    normalsShader = std::make_unique<Shader>("../../../shaders/default.vert", "../../../shaders/normals.frag", "../../../shaders/normals.geom");
-    aabbShader = std::make_unique<Shader>("../../../shaders/aabb.vert", "../../../shaders/aabb.frag");
+    shader = std::make_unique<Shader>("../shaders/default.vert", "../shaders/default.frag", "../shaders/default.geom");
+    textRender = std::make_unique<Shader>("../shaders/textShader.vert", "../shaders/textShader.frag");
+    normalsShader = std::make_unique<Shader>("../shaders/default.vert", "../shaders/normals.frag", "../shaders/normals.geom");
+    aabbShader = std::make_unique<Shader>("../shaders/aabb.vert", "../shaders/aabb.frag");
 
-    mortonShader = std::make_unique<Shader>("../../../shaders/lbvh_morton_codes.comp");
-    sortShader = std::make_unique<Shader>("../../../shaders/lbvh_single_radixsort.comp");
-    hierarchyShader = std::make_unique<Shader>("../../../shaders/lbvh_hierarchy.comp");
-    lbvhAABBShader = std::make_unique<Shader>("../../../shaders/lbvh_bounding_boxes.comp");
+    mortonShader = std::make_unique<Shader>("../shaders/lbvh_morton_codes.comp");
+    sortShader = std::make_unique<Shader>("../shaders/lbvh_single_radixsort.comp");
+    hierarchyShader = std::make_unique<Shader>("../shaders/lbvh_hierarchy.comp");
+    lbvhAABBShader = std::make_unique<Shader>("../shaders/lbvh_bounding_boxes.comp");
+
 
     if (!shader || !textRender || !normalsShader || !aabbShader || !mortonShader || !sortShader || !hierarchyShader || !lbvhAABBShader) {
         MyglobalLogger().logMessage(Logger::ERROR, "Failed to load shaders!", __FILE__, __LINE__);
@@ -45,7 +46,7 @@ void Init::initialize() {
     MyglobalLogger().logMessage(Logger::INFO, "OpenGL Version: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))), __FILE__, __LINE__);
 
     try {
-        model = std::make_unique<Model>("../../../models/bunny/scene.gltf");
+        model = std::make_unique<Model>("models/bunny/scene.gltf");
         MyglobalLogger().logMessage(Logger::INFO, "Successfully loaded GLTF model: scene.gltf", __FILE__, __LINE__);
 
         glm::vec3 overallMin(FLT_MAX);
@@ -106,7 +107,7 @@ void Init::initialize() {
         MyglobalLogger().logMessage(Logger::ERROR, "OpenGL error after AABB geometry setup: " + std::to_string(error), __FILE__, __LINE__);
     }
 
-    font = std::make_unique<Font>("../../../Fonts/comicSans_32.fnt");
+    font = std::make_unique<Font>("../Fonts/comicSans_32.fnt");
     if (!font) {
         MyglobalLogger().logMessage(Logger::ERROR, "Failed to initialize font!", __FILE__, __LINE__);
         return;
@@ -260,6 +261,12 @@ void Init::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 void Init::render() {
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
 
     int width, height;
     glfwGetWindowSize(getWindow(), &width, &height);
@@ -448,7 +455,6 @@ void Init::render() {
             textRender->setMat4("projection", textProjection);
             textRender->setInt("image", 0);
 
-            // Системная информация
             std::string text = "OpenGL Vendor: " + std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
             font->print(text.c_str(), 10.0f, 60.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
 
@@ -551,6 +557,7 @@ void Init::render() {
     }
 
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
 }
