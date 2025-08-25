@@ -28,7 +28,7 @@ sudo apt install -S nlohmann-json
 - Click on the model, been the Guizmo.
 
 ### Operation Systems
-- [X] Windows.
+- [ ] Windows.
 - [X] Linux.
 
 ### Result
