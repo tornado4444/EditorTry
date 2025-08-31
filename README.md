@@ -25,7 +25,7 @@ sudo apt install -S nlohmann-json
 - T - wireframe.
 - N - Normals.
 - L - LBVH(very dirty).
-
+- Click on the model, been the Guizmo.
 
 ### Operation Systems
 - [X] Windows.
