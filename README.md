@@ -15,6 +15,7 @@ sudo pacman -S nlohmann-json
 ```c++
 sudo apt install -S nlohmann-json
 ```
+Also on Linux, u need to download the GLFW, GLEW(for Linux)
 
 ### Keys
 
