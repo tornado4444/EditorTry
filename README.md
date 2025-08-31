@@ -29,7 +29,7 @@ sudo apt install -S nlohmann-json
 
 ### Operation Systems
 - [X] Windows.
-- [ ] Linux.
+- [X] Linux.
 
 ### Result
 ![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
