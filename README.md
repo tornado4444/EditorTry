@@ -29,8 +29,8 @@ Also on Linux, u need to download the GLFW, GLEW(for Linux).
 - Click on the model, been the Guizmo.
 
 ### Operation Systems
-- [ ] Windows.
-- [ ] Linux.
+- [X] Windows.
+- [X] Linux.
 
 ### Result
 ![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
