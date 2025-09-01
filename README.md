@@ -29,7 +29,7 @@ Also on Linux, u need to download the GLFW, GLEW(for Linux).
 - Click on the model, been the Guizmo.
 
 ### Operation Systems
-- [ ] Windows.
+- [X] Windows.
 - [X] Linux.
 
 ### Result
