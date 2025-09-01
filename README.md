@@ -30,7 +30,7 @@ Also on Linux, u need to download the GLFW, GLEW(for Linux).
 
 ### Operation Systems
 - [ ] Windows.
-- [X] Linux.
+- [ ] Linux.
 
 ### Result
 ![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
