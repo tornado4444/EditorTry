@@ -17,7 +17,7 @@ sudo apt install -S nlohmann-json
 ```
 Also on Linux, u need to download the GLFW, GLEW(for Linux).
 ```
-sudo pacman -S glew
+
 sudo pacman -S glfw
 ```
 
