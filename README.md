@@ -22,7 +22,6 @@ sudo pacman -S glfw
 ```
 
 ### Keys
-
 - W, A, S, D - forward, backward, right, left.
 - LSHIFT - down.
 - Space - up.
