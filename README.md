@@ -31,7 +31,7 @@ sudo pacman -S glfw
 - L - LBVH(very dirty).
 - Click on the model, been the Guizmo.
 
-Also make the 
+Also make the ocean
 
 ### Operation Systems
 - [X] Windows.
