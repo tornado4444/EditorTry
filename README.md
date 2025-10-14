@@ -33,7 +33,7 @@ sudo pacman -S glfw
 
 
 ### Operation Systems
-- [X] Windows.
+- [ ] Windows.
 - [X] Linux.
 
 ### Result
