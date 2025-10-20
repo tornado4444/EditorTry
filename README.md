@@ -33,8 +33,6 @@ And etc., for your distro.
 - L - LBVH(very dirty).
 - Click on the model, been the Guizmo.
 
-Also 
-
 ### Operation Systems
 - [X] Windows.
 - [X] Linux.
