@@ -32,7 +32,7 @@ sudo pacman -S glfw
 - Click on the model, been the Guizmo.
 
 ### Operation Systems
-- [X] Windows.
+- [ ] Windows.
 - [X] Linux.
 - [X] Android.  
 
