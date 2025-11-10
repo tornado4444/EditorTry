@@ -33,7 +33,7 @@ sudo pacman -S glfw
 
 ### Operation Systems
 - [X] Windows.
-- [ ] Linux.
+- [X] Linux.
 - [X] Android.  
 
 ### Result
