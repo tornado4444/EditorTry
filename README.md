@@ -35,6 +35,5 @@ sudo pacman -S glfw
 - [X] Windows.
 - [X] Linux.
 - [X] Android.  
-- [X] MacOS
 ### Result
 ![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
