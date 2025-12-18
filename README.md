@@ -5,7 +5,6 @@ This will be my first real engine, and every time I update it, it will be on bot
 ```git
 git clone https://github.com/tornado4444/EditorTry.git
 ```
-
 Also if u on Linux, you need to download json library separately.
 - Arch.
 ```c++
