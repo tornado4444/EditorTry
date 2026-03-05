@@ -35,4 +35,4 @@ sudo pacman -S glfw
 - [X] Linux.
 - [ ] Android.  
 ### Result
-[img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
+![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
