@@ -33,6 +33,6 @@ sudo pacman -S glfw
 ### Operation Systems
 - [X] Windows.
 - [X] Linux.
-- [X] Android.  
+- [ ] Android.  
 ### Result
 ![img](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
