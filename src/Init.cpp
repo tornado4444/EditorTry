@@ -4,16 +4,403 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
+#include <algorithm>
+#include <cfloat>
+#include <filesystem>
+#include <array>
+#include "stb_image.hpp"
+
+namespace {
+    constexpr float kEarthRadius = 6378000.0f;
+
+    GLint findUniform(GLuint program, const char* name) {
+        return glGetUniformLocation(program, name);
+    }
+
+    void setFloatIfPresent(GLuint program, const char* name, float value) {
+        const GLint location = findUniform(program, name);
+        if (location != -1) {
+            glUniform1f(location, value);
+        }
+    }
+
+    void setVec3IfPresent(GLuint program, const char* name, const glm::vec3& value) {
+        const GLint location = findUniform(program, name);
+        if (location != -1) {
+            glUniform3f(location, value.x, value.y, value.z);
+        }
+    }
+
+    void setIntIfPresent(GLuint program, const char* name, int value) {
+        const GLint location = findUniform(program, name);
+        if (location != -1) {
+            glUniform1i(location, value);
+        }
+    }
+
+    GLuint createSolidTexture2D(const std::array<unsigned char, 4>& rgba) {
+        GLuint textureId = 0;
+        glGenTextures(1, &textureId);
+        if (textureId == 0) {
+            return 0;
+        }
+
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return textureId;
+    }
+}
 
 Init::Init() : Window() {
     glEnable(GL_DEPTH_TEST);
-    camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 5.0f));
+    camera = std::make_unique<Camera>(
+        glm::vec3(0.0f, 3.5f, 7.5f),
+        glm::vec3(0.0f, 1.0f, 0.0f),
+        Camera::YAW_DEFAULT,
+        -12.0f
+    );
     menu = std::make_unique<Menu>();
     bvh = std::make_unique<BVH>();
     lastX = getWindowWidth() / 2.0f;
     lastY = getWindowHeight() / 2.0f;
     firstClick = true;
     glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+Init::~Init() {
+    destroyEnvironmentResources();
+}
+
+std::filesystem::path Init::resolveResourcePath(const std::string& relativePath) {
+    namespace fs = std::filesystem;
+
+    fs::path direct(relativePath);
+    if (fs::exists(direct)) {
+        return direct;
+    }
+
+    fs::path cursor = fs::current_path();
+    for (int i = 0; i < 8; ++i) {
+        fs::path candidate = cursor / relativePath;
+        if (fs::exists(candidate)) {
+            return candidate;
+        }
+        if (!cursor.has_parent_path()) {
+            break;
+        }
+        cursor = cursor.parent_path();
+    }
+
+    cursor = fs::current_path();
+    const fs::path fileName = fs::path(relativePath).filename();
+    for (int i = 0; i < 8; ++i) {
+        fs::path texturesCandidate = cursor / "textures" / fileName;
+        if (fs::exists(texturesCandidate)) {
+            return texturesCandidate;
+        }
+        if (!cursor.has_parent_path()) {
+            break;
+        }
+        cursor = cursor.parent_path();
+    }
+
+    return direct;
+}
+
+GLuint Init::loadTexture2DForAtmosphere(const std::filesystem::path& path) {
+    stbi_set_flip_vertically_on_load(false);
+
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    unsigned char* data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+    if (!data) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Failed to load atmosphere 2D texture: " + path.string(), __FILE__, __LINE__);
+        return 0;
+    }
+
+    GLuint textureId = 0;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    stbi_image_free(data);
+    return textureId;
+}
+
+GLuint Init::loadTexture3DFromAtlas(const std::filesystem::path& path) {
+    stbi_set_flip_vertically_on_load(false);
+
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    unsigned char* data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+    if (!data) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Failed to load atmosphere 3D texture atlas: " + path.string(), __FILE__, __LINE__);
+        return 0;
+    }
+
+    const long long expectedHeight = 1LL * width * width;
+    if (height != expectedHeight) {
+        stbi_image_free(data);
+        MyglobalLogger().logMessage(
+            Logger::ERROR,
+            "Invalid 3D atlas dimensions for " + path.string() + ". Expected height: " + std::to_string(expectedHeight) +
+            ", actual height: " + std::to_string(height),
+            __FILE__,
+            __LINE__
+        );
+        return 0;
+    }
+
+    GLuint textureId = 0;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_3D, textureId);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA8, width, width, width, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
+    stbi_image_free(data);
+    return textureId;
+}
+
+bool Init::initializeEnvironmentResources() {
+    try {
+        environmentShader = std::make_unique<Shader>("../../../shaders/environment.vert", "../../../shaders/environment.frag");
+    }
+    catch (const std::exception& e) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Failed to initialize environment shader: " + std::string(e.what()), __FILE__, __LINE__);
+        atmosphereReady = false;
+        return false;
+    }
+
+    const float fullscreenQuadVertices[] = {
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+        -1.0f,  1.0f,
+         1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &atmosphereVAO);
+    glGenBuffers(1, &atmosphereVBO);
+    glBindVertexArray(atmosphereVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, atmosphereVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fullscreenQuadVertices), fullscreenQuadVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    lowFrequencyTex3D = loadTexture3DFromAtlas(resolveResourcePath("../../../textures/LowFrequency3DTexture.tga"));
+    highFrequencyTex3D = loadTexture3DFromAtlas(resolveResourcePath("../../../textures/HighFrequency3DTexture.tga"));
+    weatherTex2D = loadTexture2DForAtmosphere(resolveResourcePath("../../../textures/weathermap.png"));
+    curlNoiseTex2D = loadTexture2DForAtmosphere(resolveResourcePath("../../../textures/curlNoise.png"));
+
+    auto loadOptionalTexture2D = [this](const std::vector<std::string>& candidates, const std::array<unsigned char, 4>& fallbackColor, bool& loadedFromFile, const std::string& label) -> GLuint {
+        loadedFromFile = false;
+        for (const auto& relativePath : candidates) {
+            const std::filesystem::path resolved = resolveResourcePath(relativePath);
+            if (!std::filesystem::exists(resolved)) {
+                continue;
+            }
+
+            GLuint textureId = loadTexture2DForAtmosphere(resolved);
+            if (textureId != 0) {
+                loadedFromFile = true;
+                MyglobalLogger().logMessage(Logger::INFO, "Loaded " + label + " texture: " + resolved.string(), __FILE__, __LINE__);
+                return textureId;
+            }
+        }
+
+        GLuint fallback = createSolidTexture2D(fallbackColor);
+        if (fallback != 0) {
+            MyglobalLogger().logMessage(Logger::WARNING, "Missing " + label + " texture files. Using fallback 1x1 texture.", __FILE__, __LINE__);
+        } else {
+            MyglobalLogger().logMessage(Logger::ERROR, "Failed to create fallback " + label + " texture.", __FILE__, __LINE__);
+        }
+        return fallback;
+    };
+
+    moonTex2D = loadOptionalTexture2D(
+        {
+            "../../../textures/nasa/NASA-LRO-Moon-mosaic.png",
+            "../../../textures/nasa/moon_mosaic.png",
+            "../../../textures/NASA-LRO-Moon-mosaic.png",
+            "../../../textures/moon_mosaic.png"
+        },
+        { { 186, 186, 186, 255 } },
+        hasMoonTexture,
+        "moon"
+    );
+
+    starTex2D = loadOptionalTexture2D(
+        {
+            "../../../textures/nasa/PIA15482.jpg",
+            "../../../textures/nasa/wise_sky_rectangular.jpg",
+            "../../../textures/PIA15482.jpg",
+            "../../../textures/wise_sky_rectangular.jpg"
+        },
+        { { 3, 7, 14, 255 } },
+        hasStarTexture,
+        "star map"
+    );
+
+    atmosphereReady = environmentShader &&
+        lowFrequencyTex3D != 0 &&
+        highFrequencyTex3D != 0 &&
+        weatherTex2D != 0 &&
+        curlNoiseTex2D != 0 &&
+        moonTex2D != 0 &&
+        starTex2D != 0;
+    if (!atmosphereReady) {
+        MyglobalLogger().logMessage(Logger::ERROR, "Atmosphere resources are incomplete; ocean/cloud pass disabled.", __FILE__, __LINE__);
+        destroyEnvironmentResources();
+        return false;
+    }
+
+    MyglobalLogger().logMessage(Logger::INFO, "Atmosphere resources loaded: unified ocean + volumetric clouds mode enabled.", __FILE__, __LINE__);
+    return true;
+}
+
+void Init::destroyEnvironmentResources() {
+    if (lowFrequencyTex3D != 0) {
+        glDeleteTextures(1, &lowFrequencyTex3D);
+        lowFrequencyTex3D = 0;
+    }
+    if (highFrequencyTex3D != 0) {
+        glDeleteTextures(1, &highFrequencyTex3D);
+        highFrequencyTex3D = 0;
+    }
+    if (weatherTex2D != 0) {
+        glDeleteTextures(1, &weatherTex2D);
+        weatherTex2D = 0;
+    }
+    if (curlNoiseTex2D != 0) {
+        glDeleteTextures(1, &curlNoiseTex2D);
+        curlNoiseTex2D = 0;
+    }
+    if (moonTex2D != 0) {
+        glDeleteTextures(1, &moonTex2D);
+        moonTex2D = 0;
+    }
+    if (starTex2D != 0) {
+        glDeleteTextures(1, &starTex2D);
+        starTex2D = 0;
+    }
+    if (atmosphereVBO != 0) {
+        glDeleteBuffers(1, &atmosphereVBO);
+        atmosphereVBO = 0;
+    }
+    if (atmosphereVAO != 0) {
+        glDeleteVertexArrays(1, &atmosphereVAO);
+        atmosphereVAO = 0;
+    }
+
+    atmosphereReady = false;
+    hasMoonTexture = false;
+    hasStarTexture = false;
+}
+
+void Init::renderEnvironment(int width, int height, float timeSeconds) {
+    if (!atmosphereReady || !environmentShader) {
+        return;
+    }
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    glViewport(0, 0, width, height);
+
+    environmentShader->use();
+    setFloatIfPresent(environmentShader->ID, "Time", timeSeconds);
+    setFloatIfPresent(environmentShader->ID, "screenWidth", static_cast<float>(width));
+    setFloatIfPresent(environmentShader->ID, "screenHeight", static_cast<float>(height));
+    setVec3IfPresent(environmentShader->ID, "cameraPosition", camera->Position);
+    setVec3IfPresent(environmentShader->ID, "cameraFront", camera->Front);
+    setVec3IfPresent(environmentShader->ID, "cameraUp", camera->Up);
+    setVec3IfPresent(environmentShader->ID, "cameraRight", camera->Right);
+
+    const glm::vec3 earthCenter(camera->Position.x, -kEarthRadius, camera->Position.z);
+    setVec3IfPresent(environmentShader->ID, "EarthCenter", earthCenter);
+
+    const float cloudCoverage = std::max(0.0f, menu->getCloudCoverage());
+    const float cloudDensity = std::max(0.0f, menu->getCloudDensity() * cloudCoverage);
+    setFloatIfPresent(environmentShader->ID, "CloudBottom", 1300.0f);
+    setFloatIfPresent(environmentShader->ID, "CloudTop", 7600.0f);
+    setFloatIfPresent(environmentShader->ID, "CloudDensity", cloudDensity);
+    setFloatIfPresent(environmentShader->ID, "CloudCoverage", cloudCoverage);
+    setFloatIfPresent(environmentShader->ID, "CloudSoftness", menu->getCloudSoftness());
+    setFloatIfPresent(environmentShader->ID, "CloudStorminess", menu->getCloudStorminess());
+    setFloatIfPresent(environmentShader->ID, "OceanWaveStrength", menu->getOceanWaveStrength());
+    setFloatIfPresent(environmentShader->ID, "UnderwaterDensity", menu->getUnderwaterDensity());
+    setFloatIfPresent(environmentShader->ID, "SkyTimeHours", menu->getSkyTimeHours());
+    setFloatIfPresent(environmentShader->ID, "StarBrightness", menu->getStarBrightness());
+    setFloatIfPresent(environmentShader->ID, "MoonBrightness", menu->getMoonBrightness());
+    setFloatIfPresent(environmentShader->ID, "MoonSizeDegrees", menu->getMoonSizeDegrees());
+    setFloatIfPresent(environmentShader->ID, "OceanWireframe", menu->isWireframeMode() ? 1.0f : 0.0f);
+    setIntIfPresent(environmentShader->ID, "UseMoonTexture", hasMoonTexture ? 1 : 0);
+    setIntIfPresent(environmentShader->ID, "UseStarTexture", hasStarTexture ? 1 : 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, lowFrequencyTex3D);
+    setIntIfPresent(environmentShader->ID, "lowFrequencyTexture", 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_3D, highFrequencyTex3D);
+    setIntIfPresent(environmentShader->ID, "highFrequencyTexture", 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, weatherTex2D);
+    setIntIfPresent(environmentShader->ID, "WeatherTexture", 2);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, curlNoiseTex2D);
+    setIntIfPresent(environmentShader->ID, "CurlNoiseTexture", 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, moonTex2D);
+    setIntIfPresent(environmentShader->ID, "MoonTexture", 4);
+
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, starTex2D);
+    setIntIfPresent(environmentShader->ID, "StarTexture", 5);
+
+    glBindVertexArray(atmosphereVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_3D, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
 }
 
 void Init::initialize() {
@@ -53,32 +440,36 @@ void Init::initialize() {
         glm::vec3 overallMax(-FLT_MAX);
         std::vector<glm::vec3> positions;
         std::vector<uint32_t> indices;
+        const auto& meshLocalMatrices = model->getMeshLocalMatrices();
 
         if (model && !model->meshes.empty()) {
             for (size_t i = 0; i < model->meshes.size(); ++i) {
                 const auto& mesh = model->meshes[i];
                 if (!mesh.vertices.empty()) {
+                    const glm::mat4 meshLocal = (i < meshLocalMatrices.size()) ? meshLocalMatrices[i] : glm::mat4(1.0f);
+                    const uint32_t vertexOffset = static_cast<uint32_t>(positions.size());
                     for (const auto& vertex : mesh.vertices) {
-                        positions.push_back(vertex.position);
-                        overallMin = glm::min(overallMin, vertex.position);
-                        overallMax = glm::max(overallMax, vertex.position);
+                        const glm::vec3 modelSpacePos = glm::vec3(meshLocal * glm::vec4(vertex.position, 1.0f));
+                        positions.push_back(modelSpacePos);
+                        overallMin = glm::min(overallMin, modelSpacePos);
+                        overallMax = glm::max(overallMax, modelSpacePos);
                     }
                     for (const auto& index : mesh.indices) {
-                        indices.push_back(index);
+                        indices.push_back(vertexOffset + index);
                     }
                 }
             }
             menu->setModelBounds(overallMin, overallMax);
 
             glm::mat4 initialModelMatrix = menu->getModelMatrix();
-            /*std::vector<glm::vec3> transformedPositions;
+            std::vector<glm::vec3> transformedPositions;
             transformedPositions.reserve(positions.size());
             for (const auto& pos : positions) {
                 transformedPositions.push_back(glm::vec3(initialModelMatrix * glm::vec4(pos, 1.0f)));
-            }*/
+            }
 
             double startTime = glfwGetTime();
-            bvh->buildLBVHDynamic(positions, indices, mortonShader.get(), sortShader.get(), hierarchyShader.get(), lbvhAABBShader.get());
+            bvh->buildLBVHDynamic(transformedPositions, indices, mortonShader.get(), sortShader.get(), hierarchyShader.get(), lbvhAABBShader.get());
             menu->lastLBVHBuildTime = (glfwGetTime() - startTime) * 1000.0f;
         }
     }
@@ -122,6 +513,8 @@ void Init::initialize() {
         MyglobalLogger().logMessage(Logger::ERROR, "Failed to initialize menu system!", __FILE__, __LINE__);
         return;
     }
+
+    initializeEnvironmentResources();
 
     shader->use();
     glfwSetWindowUserPointer(getWindow(), this);
@@ -206,12 +599,13 @@ void Init::processInput(GLFWwindow* window) {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
+    menu->handleGlobalInput(window);
     menu->handleEditorToggle(window);
     if (menu->isEditorModeActive()) {
         menu->handleInput(window);
     }
 
-    if (!menu->isEditorModeActive()) {
+    if (!menu->isEditorModeActive() && !menu->isCommandChatActive()) {
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera->ProcessKeyboard(FORWARD, deltaTime);
         }
@@ -264,8 +658,9 @@ void Init::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 void Init::render() {
-    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+    glClearColor(0.03f, 0.10f, 0.18f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     int width, height;
     glfwGetWindowSize(getWindow(), &width, &height);
@@ -273,6 +668,7 @@ void Init::render() {
 
     projection = glm::perspective(glm::radians(camera->Zoom), (float)width / (float)height, 0.1f, 200.0f);
     view = camera->getViewMatrix();
+    const float sceneTime = static_cast<float>(glfwGetTime());
 
     // === ПРОВЕРКА ИЗМЕНЕНИЯ ТРАНСФОРМАЦИИ И ПЕРЕСЧЕТ LBVH ===
     static glm::mat4 lastModelMatrix = glm::mat4(0.0f);
@@ -282,13 +678,17 @@ void Init::render() {
         if (model && !model->meshes.empty()) {
             std::vector<glm::vec3> positions;
             std::vector<uint32_t> indices;
+            const auto& meshLocalMatrices = model->getMeshLocalMatrices();
 
-            for (const auto& mesh : model->meshes) {
+            for (size_t i = 0; i < model->meshes.size(); ++i) {
+                const auto& mesh = model->meshes[i];
+                const glm::mat4 meshLocal = (i < meshLocalMatrices.size()) ? meshLocalMatrices[i] : glm::mat4(1.0f);
+                const uint32_t vertexOffset = static_cast<uint32_t>(positions.size());
                 for (const auto& vertex : mesh.vertices) {
-                    positions.push_back(vertex.position); // Локальные координаты
+                    positions.push_back(glm::vec3(meshLocal * glm::vec4(vertex.position, 1.0f))); // Координаты в пространстве модели
                 }
                 for (const auto& index : mesh.indices) {
-                    indices.push_back(index);
+                    indices.push_back(vertexOffset + index);
                 }
             }
 
@@ -309,6 +709,7 @@ void Init::render() {
         }
     }
 
+    renderEnvironment(width, height, sceneTime);
     menu->render(view, projection);
 
     glm::mat4 modelMatrix = menu->getModelMatrix();
@@ -321,7 +722,7 @@ void Init::render() {
     bool geometryEffects = menu->isGeometryEffects();
     bool showLBVH = menu->showLBVH;
 
-    if (!menu->isEditorModeActive()) {
+    if (!menu->isEditorModeActive() && !menu->isCommandChatActive()) {
         static bool tKeyPressed = false;
         bool tKeyCurrentlyPressed = (glfwGetKey(getWindow(), GLFW_KEY_T) == GLFW_PRESS);
         if (tKeyCurrentlyPressed && !tKeyPressed) {
@@ -359,24 +760,27 @@ void Init::render() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glLineWidth(2.0f);
         glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
     }
     else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
     }
 
     if (model && !model->meshes.empty()) {
+        glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         try {
             shader->use();
             shader->setMat4("view", view);
             shader->setMat4("projection", projection);
             shader->setVec3("camPos", camera->Position);
+            shader->setFloat("bunnySoftness", menu->getBunnySoftness());
+            shader->setFloat("geometryEffectStrength", geometryEffects ? 1.0f : 0.0f);
             GLint timeLocation = glGetUniformLocation(shader->ID, "time");
             if (timeLocation != -1) {
-                shader->setFloat("time", (float)glfwGetTime());
+                shader->setFloat("time", sceneTime);
             }
             model->Draw(*shader, *camera, modelMatrix);
 
@@ -389,14 +793,9 @@ void Init::render() {
                 normalsShader->setVec3("camPos", camera->Position);
                 GLint normalsTimeLocation = glGetUniformLocation(normalsShader->ID, "time");
                 if (normalsTimeLocation != -1) {
-                    normalsShader->setFloat("time", (float)glfwGetTime());
+                    normalsShader->setFloat("time", sceneTime);
                 }
                 model->Draw(*normalsShader, *camera, modelMatrix);
-                if (!wireframe) {
-                    glEnable(GL_BLEND);
-                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glDepthMask(GL_FALSE);
-                }
             }
 
             if (showLBVH && bvh->numInternalNodes > 0) {
@@ -448,6 +847,7 @@ void Init::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     if (font) {
         try {
@@ -475,13 +875,26 @@ void Init::render() {
             // Информация о модели
             if (model && !model->meshes.empty()) {
                 textRender->setVec3("Color", glm::vec3(0.0f, 0.8f, 1.0f));
-                std::string meshInfo = "Glass Bunny | Meshes: " + std::to_string(model->meshes.size()) +
+                std::string meshInfo = "Cloud Bunny | Meshes: " + std::to_string(model->meshes.size()) +
                     " | Vertices: " + std::to_string(model->meshes[0].vertices.size());
                 font->print(meshInfo.c_str(), 10.0f, 130.0f, 1.0f, glm::vec3(0.0f, 0.8f, 1.0f));
 
                 textRender->setVec3("Color", glm::vec3(0.8f, 1.0f, 0.8f));
-                std::string glassInfo = "GLASS EFFECT ACTIVE";
+                std::string glassInfo = "SOFT CLOUD BUNNY ACTIVE";
                 font->print(glassInfo.c_str(), 10.0f, 105.0f, 1.0f, glm::vec3(0.8f, 1.0f, 0.8f));
+
+                std::string cloudInfo = "Clouds Dens:" + std::to_string(menu->getCloudDensity()).substr(0, 4) +
+                    " Soft:" + std::to_string(menu->getCloudSoftness()).substr(0, 4) +
+                    " Storm:" + std::to_string(menu->getCloudStorminess()).substr(0, 4) +
+                    " Cov:" + std::to_string(menu->getCloudCoverage()).substr(0, 4) +
+                    " Wave:" + std::to_string(menu->getOceanWaveStrength()).substr(0, 4) +
+                    " UW:" + std::to_string(menu->getUnderwaterDensity()).substr(0, 4);
+                font->print(cloudInfo.c_str(), 10.0f, 210.0f, 0.8f, glm::vec3(0.7f, 0.9f, 1.0f));
+
+                std::string skyInfo = "Sky T:" + std::to_string(menu->getSkyTimeHours()).substr(0, 5) +
+                    "h Moon:" + std::to_string(menu->getMoonBrightness()).substr(0, 4) +
+                    " Stars:" + std::to_string(menu->getStarBrightness()).substr(0, 4);
+                font->print(skyInfo.c_str(), 10.0f, 260.0f, 0.8f, glm::vec3(0.82f, 0.86f, 1.0f));
 
                 std::string rotInfo = "Rotations X:" + std::to_string((int)modelRotation.x) +
                     " Y:" + std::to_string((int)modelRotation.y) +
@@ -548,7 +961,7 @@ void Init::render() {
 
             // Инструкции
             textRender->setVec3("Color", glm::vec3(0.7f, 0.7f, 0.7f));
-            std::string controlsText = "Controls: WASD+Mouse | Space/Shift-Up/Down | T-Wireframe | N-Normals | G-GeomFX | L-LBVH | B-Editor | ESC-Exit";
+            std::string controlsText = "Controls: WASD+Mouse | Space/Shift-Up/Down | T-Wireframe | N-Normals | G-GeomFX | L-LBVH | B-Editor | TAB-Chat(day/night) | ESC-Exit";
             font->print(controlsText.c_str(), 10.0f, static_cast<float>(height - 30), 0.5f, glm::vec3(0.7f, 0.7f, 0.7f));
 
             std::string debugInstructions = "EDITOR: B-Toggle Mode | 1/2/3-Transform Modes | L-LBVH | Drag Gizmo to transform";

@@ -14,6 +14,7 @@ public:
 	std::string get_file_contents(const char* filename);
 
 	std::vector<Mesh> meshes;
+	const std::vector<glm::mat4>& getMeshLocalMatrices() const { return matricesMeshes; }
 private:
 	const char* file;
 	std::vector<unsigned char> data;

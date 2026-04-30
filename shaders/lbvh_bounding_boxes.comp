@@ -69,12 +69,6 @@ void main() {
         vec3 minB = vec3(rightChild.aabbMinX, rightChild.aabbMinY, rightChild.aabbMinZ);
         vec3 maxB = vec3(rightChild.aabbMaxX, rightChild.aabbMaxY, rightChild.aabbMaxZ);
         
-        // Проверка на валидность AABB (не должны быть нулевыми)
-        if (all(equal(minA, vec3(0.0))) && all(equal(maxA, vec3(0.0))) ||
-            all(equal(minB, vec3(0.0))) && all(equal(maxB, vec3(0.0)))) {
-            return; // Пропускаем невалидные AABB
-        }
-        
         vec3 minAABB, maxAABB;
         aabbUnion(minA, maxA, minB, maxB, minAABB, maxAABB);
         

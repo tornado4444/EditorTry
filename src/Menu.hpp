@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <string>
 
 #include "LBVH.hpp"
 
@@ -25,11 +26,13 @@ public:
     void toggleEditorMode();
     void handleEditorToggle(GLFWwindow* window);
     void handleInput(GLFWwindow* window);
+    void handleGlobalInput(GLFWwindow* window);
     void forceSelectModel();
 
     bool wantsMouseInput() const;
     bool wantsKeyboardInput() const;
     bool isEditorModeActive() const { return editorMode; }
+    bool isCommandChatActive() const { return commandChatOpen; }
 
     void renderGuizmo(const glm::mat4& view, const glm::mat4& projection);
     bool isGuizmoActive() const { return ImGuizmo::IsOver() || ImGuizmo::IsUsing(); }
@@ -48,6 +51,19 @@ public:
     bool isWireframeMode() const { return wireframeMode; }
     bool isShowNormals() const { return showNormals; }
     bool isGeometryEffects() const { return geometryEffects; }
+    float getCloudDensity() const { return cloudDensity; }
+    float getCloudSoftness() const { return cloudSoftness; }
+    float getCloudStorminess() const { return cloudStorminess; }
+    float getBunnySoftness() const { return bunnySoftness; }
+    float getOceanWaveStrength() const { return oceanWaveStrength; }
+    float getUnderwaterDensity() const { return underwaterDensity; }
+    float getSkyTimeHours() const { return skyTimeHours; }
+    float getDayNightSpeed() const { return dayNightSpeed; }
+    bool isDayNightAnimated() const { return animateDayNight; }
+    float getStarBrightness() const { return starBrightness; }
+    float getMoonBrightness() const { return moonBrightness; }
+    float getMoonSizeDegrees() const { return moonSizeDegrees; }
+    float getCloudCoverage() const { return cloudCoverage; }
 
     void setWireframeMode(bool mode) { wireframeMode = mode; }
     void setShowNormals(bool show) { showNormals = show; }
@@ -84,6 +100,26 @@ public:
     bool useSnap;
     float snapValues[3];
 
+    float cloudDensity;
+    float cloudSoftness;
+    float cloudStorminess;
+    float bunnySoftness;
+    float oceanWaveStrength;
+    float underwaterDensity;
+    float skyTimeHours;
+    float dayNightSpeed;
+    bool animateDayNight;
+    float starBrightness;
+    float moonBrightness;
+    float moonSizeDegrees;
+    float cloudCoverage;
+    bool commandChatOpen;
+    bool commandChatFocusRequested;
+    bool tabPressed;
+    char commandBuffer[128];
+    std::string commandFeedback;
+    double commandFeedbackUntil;
+
     void renderMainMenuBar();
     void renderFileMenu();
     void renderViewMenu();
@@ -92,4 +128,6 @@ public:
     void renderRenderSettings();
     void renderEditorPanel();
     void renderGuizmoControls();
+    void renderCommandChat();
+    void executeCommand(const std::string& rawCommand);
 };

@@ -200,14 +200,17 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
     uint32_t validNodeCount = 0;
     uint32_t degenerateCount = 0;
 
-    for (uint32_t i = numTris - 1; i < totalNodes; ++i) {
+    const uint32_t nodeBegin = (numTris > 1) ? 0u : (numTris - 1);
+    const uint32_t nodeEnd = (numTris > 1) ? (numTris - 1) : totalNodes;
+
+    for (uint32_t i = nodeBegin; i < nodeEnd; ++i) {
         const LBVHNode& node = lbvhNodes[i];
 
         glm::vec3 nodeMin(node.aabbMinX, node.aabbMinY, node.aabbMinZ);
         glm::vec3 nodeMax(node.aabbMaxX, node.aabbMaxY, node.aabbMaxZ);
         glm::vec3 scale = nodeMax - nodeMin;
 
-        if (glm::any(glm::lessThanEqual(scale, glm::vec3(0.0001f))) ||
+        if (glm::any(glm::lessThan(scale, glm::vec3(0.0f))) ||
             glm::any(glm::isnan(nodeMin)) || glm::any(glm::isnan(nodeMax)) ||
             glm::any(glm::isinf(nodeMin)) || glm::any(glm::isinf(nodeMax))) {
             degenerateCount++;
@@ -223,7 +226,6 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
         }
 
         glm::vec3 center = (nodeMin + nodeMax) * 0.5f;
-        center += glm::vec3(8.3, 0.0, 8.0);
 
         scale = glm::max(scale, glm::vec3(0.001f)); 
 
@@ -232,7 +234,7 @@ void BVH::buildLBVHDynamic(const std::vector<glm::vec3>& positions, const std::v
         validNodeCount++;
 
         if (validNodeCount <= 5) {
-            bool isLeaf = (i >= numTris - 1);
+            bool isLeaf = (i >= (numTris - 1));
             std::string nodeType = isLeaf ? "Leaf" : "Internal";
             MyglobalLogger().logMessage(Logger::DEBUG,
                 nodeType + " node " + std::to_string(i) + " -> instance " + std::to_string(validNodeCount - 1) +

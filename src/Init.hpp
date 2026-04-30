@@ -23,7 +23,7 @@
 class Init : public Window {
 public:
     Init();
-    ~Init() = default;
+    ~Init();
 
     Init(const Init&) = delete;
     Init& operator=(const Init&) = delete;
@@ -41,9 +41,18 @@ public:
     void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     bool rayAABBIntersectWorld(const glm::vec3& origin, const glm::vec3& dir,
         const glm::vec3& boxMin, const glm::vec3& boxMax);
+
+private:
+    bool initializeEnvironmentResources();
+    void renderEnvironment(int width, int height, float timeSeconds);
+    void destroyEnvironmentResources();
+    static std::filesystem::path resolveResourcePath(const std::string& relativePath);
+    static GLuint loadTexture2DForAtmosphere(const std::filesystem::path& path);
+    static GLuint loadTexture3DFromAtlas(const std::filesystem::path& path);
 private:
     std::unique_ptr<Camera> camera;
     std::unique_ptr<Shader> shader;
+    std::unique_ptr<Shader> environmentShader;
     std::unique_ptr<Shader> normalsShader;
     std::unique_ptr<Shader> textRender;
     std::unique_ptr<Shader> aabbShader;
@@ -57,6 +66,17 @@ private:
     std::unique_ptr<Menu> menu;
     std::unique_ptr<BVH> bvh;
     GLuint cubeVAO, cubeVBO, cubeEBO;
+    GLuint atmosphereVAO = 0;
+    GLuint atmosphereVBO = 0;
+    GLuint lowFrequencyTex3D = 0;
+    GLuint highFrequencyTex3D = 0;
+    GLuint weatherTex2D = 0;
+    GLuint curlNoiseTex2D = 0;
+    GLuint moonTex2D = 0;
+    GLuint starTex2D = 0;
+    bool hasMoonTexture = false;
+    bool hasStarTexture = false;
+    bool atmosphereReady = false;
 
 private:
     glm::mat4 projection;

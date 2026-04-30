@@ -55,11 +55,6 @@ int clz(uint x) {
     return n;
 }
 
-int findMSB(uint x) {
-    if (x == 0) return -1;
-    return 31 - clz(x);
-}
-
 int delta(int i, int j) {
     if (j < 0 || j >= int(numElements)) return -1;
     
@@ -70,13 +65,13 @@ int delta(int i, int j) {
         uint elementIdxI = g_sorted_morton_codes[i].elementIdx;
         uint elementIdxJ = g_sorted_morton_codes[j].elementIdx;
         uint xor_result = elementIdxI ^ elementIdxJ;
-        if (xor_result == 0) return 63; // Максимальное значение
-        return 32 + findMSB(xor_result);
+        if (xor_result == 0) return 64;
+        return 32 + clz(xor_result);
     }
     
     uint xor_result = codeI ^ codeJ;
-    if (xor_result == 0) return 31;
-    return findMSB(xor_result);
+    if (xor_result == 0) return 32;
+    return clz(xor_result);
 }
 
 void determineRange(int idx, out int lower, out int upper) {
