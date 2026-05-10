@@ -1,3 +1,6 @@
 [submodule "libraries/glew"]
 	path = libraries/glew
 	url = https://github.com/Perlmint/glew-cmake.git
+[submodule "libraries/glfw"]
+	path = libraries/glfw
+	url = https://github.com/glfw/glfw.git
