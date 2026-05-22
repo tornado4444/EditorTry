@@ -1,5 +1,3 @@
-https://github.com/user-attachments/assets/f2a3a38a-9a23-4e21-b3fe-2471c01c7367
-
 # OpenGL Engine
 This is my next attempt to make a normal engine! I hope it will be cool enough! At the moment I have done little, but the repository will be constantly updated!
 
@@ -19,4 +17,4 @@ git clone https://github.com/tornado4444/EditorTry.git
 + Click on the model, been the Guizmo.
 
 ### Result.
-Full video: [result_video.mp4](textures/result/result_video.mp4)
+https://github.com/user-attachments/assets/f2a3a38a-9a23-4e21-b3fe-2471c01c7367
