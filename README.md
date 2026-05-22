@@ -17,4 +17,4 @@ git clone https://github.com/tornado4444/EditorTry.git
 + Click on the model, been the Guizmo.
 
 ### Result.
-[result_video.mp4](textures/result/result_video.mp4)
+[result_video.mp4](textures/result/result_render.mp4)
