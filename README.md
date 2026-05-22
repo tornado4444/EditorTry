@@ -17,4 +17,4 @@ git clone https://github.com/tornado4444/EditorTry.git
 + Click on the model, been the Guizmo.
 
 ### Result.
-![video](https://github.com/tornado4444/EditorTry/blob/main/hate_errors.png)
+![video](https://github.com/tornado4444/EditorTry/blob/main/textures/result/result_render.mp4)
