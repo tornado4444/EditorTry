@@ -16,7 +16,8 @@ git clone https://github.com/tornado4444/EditorTry.git
 + L - LBVH(very dirty).
 + Click on the model, been the Guizmo.
 
-[X] Windows
+[X]Windows
+[X]Linux
 
 ### Result.
 https://github.com/user-attachments/assets/f2a3a38a-9a23-4e21-b3fe-2471c01c7367
